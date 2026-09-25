@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050508" />
+  <meta name="description" content="UTC.OS reconstruction shell — Phase 5 shell. Not the live utc-os-app." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>UTC.OS — Reconstruction Shell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="recon-banner" role="status">
+      Reconstruction shell — not live utc-os-app · Demo / fixture data only
+    </div>
+
+    <header class="header" id="header">
+      <div class="header-top">
+        <div class="brand">
+          <div class="brand-name">UTC.OS</div>
+          <div class="world-chip" id="worldChip">UP2CODE</div>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="icon-btn" id="btnSearch" title="Search" aria-label="Search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
+          </button>
+          <button type="button" class="icon-btn vault" id="btnVault" title="Secret Vault" aria-label="Secret Vault">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10 6-10 6z" fill="currentColor" stroke="none"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="btnLeadsShortcut" title="Lead Center" aria-label="Lead Center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19l4-8 4 4 4-8 4 12"/><path d="M4 19h16"/></svg>
+          </button>
+          <button type="button" class="avatar-btn" id="btnActiveAgent" title="Active agent" aria-label="Active agent">K</button>
+        </div>
+      </div>
+      <div class="header-sub">
+        <div class="status-pill local" id="syncPill" title="Honest local shell — no cloud sync">
+          <span class="dot"></span>
+          <span>Local · shell</span>
+        </div>
+        <select class="workspace-select" id="workspaceSelect" aria-label="Workspace">
+          <option>All work</option>
+          <option>Business</option>
+          <option>Music</option>
+          <option>Creative</option>
+          <option>Personal</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="main" id="main">
+      <!-- ========== HOME ========== -->
+      <section class="view active" id="view-home" data-view="home">
+        <div class="home-tabs" role="tablist">
+          <button type="button" class="home-tab active" data-home-tab="home">Home</button>
+          <button type="button" class="home-tab" data-home-tab="brain">Brain map</button>
+          <button type="button" class="home-tab" data-home-tab="setup">Setup</button>
+        </div>
+
+        <div id="homeTabHome">
+          <div class="hero">
+            <div class="h1">UTC.OS</div>
+            <p class="tagline">A Higher Reality Operating System</p>
+            <p class="sub" id="heroSub">UP2CODE · CREATION / ORGANIZATION / DEDICATION</p>
+          </div>
+
+          <div class="agent-strip" id="agentStrip" role="list"></div>
+
+          <div class="core-section">
+            <div class="section-label">UTC.OS CORE</div>
+            <div class="h2">TWO REALITIES. ONE YOU.</div>
+            <div class="coin-wrap">
+              <button type="button" class="coin" id="coin" aria-label="Flip reality coin">
+                <span class="coin-face front">
+                  <span class="coin-label">UP2CODE</span>
+                  <span class="coin-hint">Tap to flip</span>
+                </span>
+                <span class="coin-face back">
+                  <span class="coin-label">LIL WIZNAP</span>
+                  <span class="coin-hint">Tap to flip</span>
+                </span>
+              </button>
+            </div>
+            <p class="reality-desc" id="realityDesc">Prospects, priorities, and the next paid job.</p>
+          </div>
+
+          <div class="card gold-edge">
+            <div class="section-label">Business Reality · UP2CODE <span class="demo-badge">Fixture</span></div>
+            <div class="stat-grid">
+              <div class="stat-box"><div class="num">3</div><div class="lbl">Projects</div></div>
+              <div class="stat-box"><div class="num">10</div><div class="lbl">Leads</div></div>
+              <div class="stat-box"><div class="num">10</div><div class="lbl">Saved opportunities</div></div>
+              <div class="stat-box"><div class="num">1</div><div class="lbl">Hot leads</div></div>
+            </div>
+            <button type="button" class="btn btn-outline btn-block" data-nav="lead-center">Open Lead Center</button>
+          </div>
+
+          <div class="card" id="creativeCard" hidden>
+            <div class="section-label">Creative Reality · Lil Wiz-Nap <span class="demo-badge">Fixture</span></div>
+            <p class="small muted" style="margin-bottom:8px">Music Dimension · 1 saved music project</p>
+            <div class="stat-grid">
+              <div class="stat-box"><div class="num">—</div><div class="lbl">Tracks &amp; albums</div></div>
+              <div class="stat-box"><div class="num">—</div><div class="lbl">Lyrics</div></div>
+              <div class="stat-box"><div class="num">—</div><div class="lbl">Visuals</div></div>
+              <div class="stat-box"><div class="num">—</div><div class="lbl">Music videos</div></div>
+            </div>
+            <p class="small dim">Distribution / Fan network — Coming soon</p>
+            <button type="button" class="btn btn-outline btn-block" style="margin-top:10px" data-nav="specialist/sauce-sensei">Open Sauce Sensei module</button>
+          </div>
+
+          <div class="card">
+            <div class="section-label">Second Brain <span class="demo-badge">Fixture</span></div>
+            <div class="stat-row">
+              <div><div class="num">15</div><div class="lbl">Universe map</div></div>
+              <div><div class="num">3</div><div class="lbl">Memory</div></div>
+              <div><div class="num">12</div><div class="lbl">Research &amp; files</div></div>
+            </div>
+            <p class="small muted">Local evidence counts from the live walk — not synced here.</p>
+          </div>
+
+          <div class="card cockpit" id="cockpit">
+            <div class="cockpit-title" id="cockpitTitle">Ask Kara</div>
+            <p class="small muted" id="cockpitHint">What should we organize, finish, or move forward?</p>
+            <div class="chips" id="promptChips"></div>
+            <div class="chat-head"><span class="engine-label">Local assistant, no AI connected</span><button type="button" class="small dim chat-clear" id="cockpitClear">Clear chat</button></div>
+            <div class="answer-panel chat-log" id="answerPanel" aria-live="polite">Kara online.</div>
+            <div class="cockpit-row">
+              <input type="text" id="cockpitInput" placeholder="Type a prompt…" autocomplete="off" />
+              <button type="button" class="icon-btn" title="Attach (stub)" aria-label="Attach" disabled>📎</button>
+              <button type="button" class="icon-btn" title="Speak (stub)" aria-label="Speak" disabled>🎤</button>
+              <button type="button" class="btn btn-gold" id="btnSend" style="border-radius:8px;padding:8px 14px">Send</button>
+            </div>
+            <p class="small dim" style="margin-top:8px">Local command engine acting on data saved on this device. No AI model or agent API is connected — type <strong>help</strong> for commands.</p>
+          </div>
+
+          <div class="card">
+            <div class="section-label">Daily Command <span class="demo-badge">Fixture</span></div>
+            <p class="small">Recommended: <strong>Call about the painter opening</strong> · SAVED</p>
+            <p class="small muted" style="margin-top:4px">6 checks ready</p>
+            <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" data-nav="today">Open Today</button>
+          </div>
+
+          <div class="card coming-soon">
+            <div class="section-label">Media player</div>
+            <p class="small muted">Transport controls disabled in live app.</p>
+          </div>
+
+          <div class="card coming-soon">
+            <div class="section-label">Crew · Materials · Profit</div>
+            <p class="small muted">Modules marked Coming soon on the live Home.</p>
+          </div>
+
+          <div class="card">
+            <div class="section-label">System status</div>
+            <p class="small" id="systemStatusLine">Kara READY · Local shell</p>
+          </div>
+        </div>
+
+        <div id="homeTabBrain" hidden>
+          <div class="card glow">
+            <div class="section-label">Brain map <span class="demo-badge">Fixture</span></div>
+            <h2>UTC.OS second-brain knowledge galaxy</h2>
+            <p class="muted small">Projects, memories and knowledge connected around one local command core. Tap a node to see its source proof.</p>
+            <div class="stat-row">
+              <div><div class="num">12</div><div class="lbl">Captured nodes</div></div>
+              <div><div class="num">38</div><div class="lbl">Total in live app</div></div>
+              <div><div class="num" id="brainPageNum">1/2</div><div class="lbl">Page</div></div>
+            </div>
+            <div class="brain-legend small">
+              <span><i class="lg core"></i>Core</span>
+              <span><i class="lg project"></i>Project</span>
+              <span><i class="lg memory"></i>Memory</span>
+              <span><i class="lg knowledge"></i>Knowledge</span>
+            </div>
+            <div class="brain-galaxy" id="brainGalaxy" aria-label="Node constellation"></div>
+            <div class="brain-node-list" id="brainNodeList" role="list"></div>
+            <div class="brain-pager">
+              <button type="button" class="btn btn-ghost" id="btnBrainPrev">Previous nodes</button>
+              <button type="button" class="btn btn-ghost" id="btnBrainNext">Next nodes</button>
+            </div>
+            <p class="small dim" id="brainPageLabel" style="margin-top:8px"></p>
+          </div>
+
+          <div class="card brain-proof" id="brainProof"></div>
+          <p class="small dim" style="margin:0 2px 12px">26 of the 38 live nodes were not captured in the walk. No node mutation · local fixture only.</p>
+        </div>
+
+        <div id="homeTabSetup" hidden>
+          <div class="card glow">
+            <div class="section-label">Setup</div>
+            <h2>Connections and build notes</h2>
+            <p class="muted small">Status labels mirror the live walk [18] <span class="demo-badge">Fixture</span>. They are not re-verified on this device — <strong>Run checks</strong> only tests local browser capabilities.</p>
+          </div>
+
+          <div class="setup-grid" id="setupStatus"></div>
+          <button type="button" class="btn btn-outline btn-block" id="btnSetupChecks">Run checks</button>
+          <div class="answer-panel" id="setupCheckResults" style="display:none;margin-top:8px"></div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="section-label">Voice Studio</div>
+            <h2>Voice personality</h2>
+            <p class="small muted" style="margin:4px 0 10px">Choice is saved on this device only. No audio is generated in this shell.</p>
+            <div id="voicePersonaList" class="help-level"></div>
+            <label class="radio-row voice-paid" style="margin-top:12px">
+              <input type="checkbox" id="openaiVoice" disabled /> Use OpenAI voice
+            </label>
+            <p class="safety-note">OpenAI voice may incur API charges. Unchecked and disabled in this reconstruction shell (live walk left it unchecked).</p>
+            <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" disabled>Preview voice (not available)</button>
+            <p class="small dim local-note" style="margin-top:8px">Saved on this device only</p>
+          </div>
+
+          <div class="card">
+            <div class="section-label">Best connection order</div>
+            <ol class="small muted setup-order">
+              <li>Voice is attached to the OpenAI Platform key.</li>
+              <li>Connect Drive and Notion for source retrieval.</li>
+              <li>Connect Gmail and Calendar with review-before-send rules.</li>
+              <li>Add messaging only after grounded answers are reliable.</li>
+              <li>Add phone calls last, with confirmation before every dial.</li>
+            </ol>
+            <p class="small dim" style="margin-top:6px">Copy from live walk [18] · none of these are connected here.</p>
+          </div>
+
+          <div class="card setup-row"><strong>Video notes</strong><span class="small dim">7 notes · not captured</span></div>
+          <div class="card setup-row"><strong>JARVIS build pack</strong><span class="small dim">8 prompts · not captured</span></div>
+          <button type="button" class="btn btn-outline btn-block" style="margin-bottom:12px" data-nav="connections">Open Connections</button>
+        </div>
+      </section>
+
+      <!-- ========== TODAY ========== -->
+      <section class="view" id="view-today" data-view="today">
+        <div class="section-label">Daily cockpit</div>
+        <h1>Today</h1>
+        <p class="muted small" id="todayDate"></p>
+        <p class="small dim" style="margin:8px 0 12px">Keep three to five key tasks visible. The full backlog remains intact.</p>
+        <p class="small local-note" style="margin-bottom:12px">Saved on this device only</p>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <h2>Plan</h2>
+            <span class="small dim" id="planKeyCount">0/5 key tasks</span>
+          </div>
+          <div class="form-group">
+            <label>Today's focus</label>
+            <input type="text" id="todayFocus" placeholder="What makes today count?" />
+          </div>
+          <div class="form-group">
+            <label>Fixed commitment</label>
+            <input type="text" id="todayCommitment" placeholder="Appointment, court, client call…" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <h2>Key tasks</h2>
+            <button type="button" class="small gold" id="btnAddTask">Add task</button>
+          </div>
+          <p class="small muted" id="keyTasksHint" style="padding:10px;border-left:2px solid var(--violet);margin:8px 0">Select your first key task from the backlog below.</p>
+          <ul class="key-task-list" id="keyTaskList"></ul>
+          <div class="cockpit-row" style="margin-top:6px">
+            <input type="text" id="customTaskInput" placeholder="Or type your own key task…" autocomplete="off" />
+            <button type="button" class="btn btn-outline" id="btnCustomTask" style="padding:8px 14px">Add</button>
+          </div>
+          <p class="small dim" id="keyTaskCount" style="margin-top:8px">0/5 key tasks</p>
+          <details id="backlogDetails" open>
+            <summary class="gold small" style="cursor:pointer">Choose from backlog (<span id="backlogCount">1</span>)</summary>
+            <div id="backlogList" style="margin-top:8px"></div>
+          </details>
+        </div>
+
+        <div class="card" id="habitsCard">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <h2>Habits</h2>
+            <span class="small dim" id="habitCount">0/0 today</span>
+          </div>
+          <p class="small dim" style="margin:4px 0 8px">Your habits · this device only. Tap the circle to check off today.</p>
+          <ul class="habit-list" id="habitList"></ul>
+          <div class="cockpit-row" style="margin-top:8px">
+            <input type="text" id="habitInput" placeholder="New habit, e.g. 20-min walk" autocomplete="off" maxlength="80" aria-label="New habit" />
+            <button type="button" class="btn btn-outline" id="btnAddHabit" style="padding:8px 14px">Add habit</button>
+          </div>
+        </div>
+
+        <div class="card" id="goalsCard">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <h2>Goals</h2>
+            <span class="small dim" id="goalCount">0 active</span>
+          </div>
+          <div id="goalList"></div>
+          <details class="goal-add" id="goalAddDetails">
+            <summary class="gold small">Add goal</summary>
+            <div class="form-group" style="margin-top:8px">
+              <label for="goalTitle">Goal</label>
+              <input type="text" id="goalTitle" placeholder="e.g. Land 3 painting jobs" autocomplete="off" maxlength="120" />
+            </div>
+            <div class="goal-form-row">
+              <div class="form-group">
+                <label for="goalCategory">Category</label>
+                <select id="goalCategory">
+                  <option value="UP2CODE">UP2CODE</option>
+                  <option value="Lil Wiz-Nap">Lil Wiz-Nap</option>
+                  <option value="Personal">Personal</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="goalTarget">Target date (optional)</label>
+                <input type="date" id="goalTarget" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="goalMode">Track by</label>
+              <select id="goalMode">
+                <option value="progress">Progress 0–100%</option>
+                <option value="steps">Checklist steps</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-outline btn-block" id="btnAddGoal">Add goal</button>
+          </details>
+        </div>
+
+        <div class="card">
+          <h2>Evening review</h2>
+          <div class="form-group">
+            <label>Raw entry</label>
+            <textarea id="reviewRaw" placeholder="What moved today?"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Summary</label>
+            <textarea id="reviewSummary" placeholder="Short summary…"></textarea>
+          </div>
+          <button type="button" class="btn btn-outline btn-block" id="btnSaveReview">Save review</button>
+          <div class="answer-panel" id="reviewAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h2>Grounded memory review</h2>
+          <p class="small muted">Lesson 6 · Some recommended tasks have no deadline.</p>
+        </div>
+      </section>
+
+      <!-- ========== FORGE ========== -->
+      <section class="view" id="view-forge" data-view="forge">
+        <div class="tabs" role="tablist">
+          <button type="button" class="tab active" data-forge-tab="product">Product Forge</button>
+          <button type="button" class="tab" data-forge-tab="verify">Verify Work</button>
+        </div>
+
+        <div id="forgeProduct">
+          <div class="card glow">
+            <div class="section-label">Product Forge</div>
+            <h1 style="font-size:22px">Build a product idea without guessing the next step.</h1>
+            <p class="muted small">Tell Forge what you want to improve. It turns the rough idea into a guided product plan and stops before spending money.</p>
+          </div>
+
+          <ol class="step-list">
+            <li>
+              <span class="step-num">1</span>
+              <div>
+                <strong>Describe it</strong>
+                <p class="small muted">Tell Forge the ordinary product and the problem.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">2</span>
+              <div>
+                <strong>Build the plan</strong>
+                <p class="small muted">Forge creates directions, pricing, validation and plan steps.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">3</span>
+              <div>
+                <strong>Stop before spend</strong>
+                <p class="small muted">Review locally. No purchase, send, or manufacture.</p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="card">
+            <div class="form-group">
+              <label>Product idea</label>
+              <input type="text" id="forgeProductIdea" placeholder="What are you building?" />
+            </div>
+            <div class="form-group">
+              <label>Frustration / problem</label>
+              <input type="text" id="forgeFrustration" placeholder="What keeps going wrong?" />
+            </div>
+            <div class="form-group">
+              <label>Who is it for?</label>
+              <input type="text" value="Painters and working contractors" />
+            </div>
+            <div class="form-group">
+              <label>Help level</label>
+              <div class="help-level">
+                <label class="radio-row selected"><input type="radio" name="help" checked /> Fast plan</label>
+                <label class="radio-row"><input type="radio" name="help" /> Step-by-step</label>
+                <label class="radio-row"><input type="radio" name="help" /> Full draft</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Brand</label>
+              <select>
+                <option selected>UP2CODE</option>
+                <option>Lil Wiz-Nap</option>
+                <option>Neutral</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Optional money / demand numbers</label>
+              <input type="text" placeholder="Budget, price point, demand signal…" />
+            </div>
+            <button type="button" class="btn btn-gold btn-block" id="btnBuildPlan">Build product plan</button>
+            <p class="safety-note">Local-engine safety: live supplier data and AI generation are disconnected in this shell (matches OBSERVED Forge copy). Plan output is a stub message only.</p>
+            <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" id="btnLoadPainter">Load painter tool example</button>
+            <div class="answer-panel" id="forgeAnswer" style="margin-top:10px;display:none"></div>
+          </div>
+        </div>
+
+        <div id="forgeVerify" hidden>
+          <div class="card glow">
+            <div class="section-label">Self-Verifying Workflow</div>
+            <h1 style="font-size:22px">Verify Work</h1>
+            <p class="muted small">Define success, supply the work, set a stop condition. No live verification run in this shell.</p>
+          </div>
+          <div class="card">
+            <div class="form-group">
+              <label>Define success / goal</label>
+              <input type="text" placeholder="e.g. Painting estimate ready for customer" />
+            </div>
+            <div class="form-group">
+              <label>Acceptance checks</label>
+              <textarea placeholder="List checks that must pass…"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Supply the work</label>
+              <textarea placeholder="Paste or describe the work to inspect…"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Stop condition</label>
+              <input type="text" value="Stop after three review cycles or when every acceptance check passes." />
+            </div>
+            <label class="radio-row" style="margin-bottom:12px">
+              <input type="checkbox" /> Require approval before consequential actions
+            </label>
+            <button type="button" class="btn btn-gold btn-block" id="btnVerify">Run verification</button>
+            <p class="safety-note">Safety boundary: verification does not call external systems in this reconstruction shell.</p>
+            <div class="answer-panel" id="verifyAnswer" style="margin-top:10px;display:none"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== LEAD CENTER ========== -->
+      <section class="view" id="view-lead-center" data-view="lead-center">
+        <nav class="breadcrumb">UTC.OS → UP2CODE → <span class="here">Lead Center</span></nav>
+        <div class="section-label">Private Inquiry Inbox</div>
+        <h1>Lead Center</h1>
+        <p class="muted small" style="margin-bottom:14px">Real customer inquiries, follow-ups, files and estimates. Owner access only.</p>
+
+        <div class="card glow">
+          <div class="section-label">Live Lead Discovery</div>
+          <h2>Job Radar</h2>
+          <p class="small muted" style="margin:6px 0 12px">Ready to search public sources around Pittsburgh.</p>
+          <button type="button" class="btn btn-gold btn-block" id="btnRadar" title="Not run — reconstruction shell">Run Pittsburgh radar</button>
+          <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" id="btnImport">Import JSON or CSV</button>
+          <p class="small dim" style="margin-top:10px">Every live-search result must match a source returned by the search engine. Duplicate URLs and source IDs refresh the existing record.</p>
+          <p class="safety-note">This shell does <strong>not</strong> run radar or upsert. Button shows an honest stub message only.</p>
+          <div class="answer-panel" id="radarAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box"><div class="num">0</div><div class="lbl">New today</div></div>
+          <div class="stat-box"><div class="num">5</div><div class="lbl">Unread</div></div>
+          <div class="stat-box"><div class="num">3</div><div class="lbl">Hot</div></div>
+          <div class="stat-box"><div class="num">1</div><div class="lbl">Follow-ups due</div></div>
+        </div>
+        <p class="small dim" style="margin-bottom:8px">Summary cards · <span class="demo-badge">Demo data</span> shaped like the live walk</p>
+
+        <h2 style="margin:12px 0 4px">Pipeline</h2>
+        <div class="pipeline-filters" id="pipelineFilters"></div>
+        <div class="lead-list" id="leadList"></div>
+      </section>
+
+      <!-- ========== SKILLS ========== -->
+      <section class="view" id="view-skills" data-view="skills">
+        <div class="card glow">
+          <div class="section-label">Skills</div>
+          <h1 style="font-size:22px">Turn repeatable work into a practiced loop.</h1>
+          <p class="muted small">Run counts and streaks are local evidence of repetition. They do not trigger outside services.</p>
+        </div>
+        <div class="stat-row">
+          <div><div class="num">5</div><div class="lbl">Skills</div></div>
+          <div><div class="num" id="skillTotalRuns">116</div><div class="lbl">Total runs</div></div>
+          <div><div class="num">6</div><div class="lbl">Best streak</div></div>
+        </div>
+        <p class="small dim" style="margin-bottom:10px"><span class="demo-badge">Fixture</span> base counts from live walk + your local runs · <span class="local-note">Saved on this device only</span></p>
+
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+          <h2>Skill library</h2>
+          <span class="small dim">Tap to log a run</span>
+        </div>
+        <div id="skillList"></div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>Add a skill</h2>
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" placeholder="Skill name" />
+          </div>
+          <div class="form-group">
+            <label>Loop description</label>
+            <textarea placeholder="What repeats?"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Workspace</label>
+            <select>
+              <option>All work</option>
+              <option>Business</option>
+              <option>Music</option>
+              <option>Creative</option>
+              <option>Personal</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-outline btn-block" id="btnAddSkill">Add skill (local stub)</button>
+          <div class="answer-panel" id="skillAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+      </section>
+
+      <!-- ========== SYSTEM ========== -->
+      <section class="view" id="view-system" data-view="system">
+        <div class="section-label">Your system</div>
+        <h1 style="font-size:24px">One place for the work behind the work.</h1>
+        <p class="muted small" style="margin-bottom:14px">Projects, tasks, and system settings. This shell is local-only — no cloud backup claimed.</p>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <h2>AI model</h2>
+            <span class="small dim">Applies to core agents</span>
+          </div>
+          <p class="small muted" style="margin:6px 0">Choose the brain for UTC.OS.</p>
+          <select id="modelSelect">
+            <option selected>Auto (GPT-5 mini)</option>
+            <option>GPT-5 mini</option>
+            <option>GPT-5</option>
+          </select>
+          <p class="small dim" style="margin-top:8px">Uses GPT-5 mini for everyday work in the live app. Selector is UI-only here — no API calls.</p>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between">
+            <h2>Build the AI</h2>
+            <span class="small gold">Focused offer →</span>
+          </div>
+          <p class="small muted" style="margin-top:6px">Lesson modules 1–10 · lesson content was not captured from the live app.</p>
+          <div class="lesson-progress" id="lessonProgress"></div>
+          <div class="lesson-grid" id="lessonGrid"></div>
+        </div>
+
+        <div class="card">
+          <h2>System tools</h2>
+          <button type="button" class="tool-link" data-nav="connections">Connections <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="settings">Settings <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="security">Security <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="memory">Memory <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="knowledge">Knowledge <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="team">Team <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="studio">Studio <span class="arrow">→</span></button>
+          <button type="button" class="tool-link" data-nav="mockup">Mockup <span class="arrow">→</span></button>
+        </div>
+
+        <div class="card">
+          <h2>Install</h2>
+          <p class="small">Android ready · Put UTC.OS on your home screen</p>
+          <p class="small muted" style="margin:4px 0 10px">This shell ships a manifest + service worker. Android Chrome can install it only when served over HTTPS (or localhost).</p>
+          <button type="button" class="btn btn-outline btn-block" id="btnInstall">Install this app</button>
+          <div class="answer-panel" id="installAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h2>Launch points</h2>
+          <a class="tool-link" href="https://up2code.me" target="_blank" rel="noopener">UP2CODE website <span class="arrow">↗</span></a>
+          <button type="button" class="tool-link" data-nav="lead-center">Live Job Radar (in Lead Center) <span class="arrow">→</span></button>
+        </div>
+
+        <div class="card">
+          <h2>Data control</h2>
+          <p class="small muted" style="margin-bottom:8px">Backups contain only this shell's <code>utcos-shell:</code> localStorage keys. Nothing leaves the device unless you move the file.</p>
+          <button type="button" class="btn btn-ghost btn-block" id="btnExport">Export backup (JSON)</button>
+          <button type="button" class="btn btn-ghost btn-block" style="margin-top:6px" id="btnImportData">Import backup</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden />
+          <button type="button" class="btn btn-ghost btn-block danger-outline" style="margin-top:6px" id="btnReset">Reset local data</button>
+          <p class="small local-note" style="margin-top:8px" id="dataStatusLine">Saved on this device only</p>
+          <div class="answer-panel" id="dataAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h2>What is connected</h2>
+          <p class="small muted">OBSERVED honest local features (not external OAuth): local search, voice input, routing, capture, Memory, Knowledge, Studio, Apparel layouts, Skills, Security snapshots, project editing, lead tracking, Forge, install/export/import. External services are not automatic.</p>
+        </div>
+      </section>
+
+      <!-- ========== CONNECTIONS ========== -->
+      <section class="view" id="view-connections" data-view="connections">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Verified Connections</div>
+        <h1 style="font-size:24px">Connections</h1>
+        <p class="muted small" style="margin-bottom:14px">Labels match OBSERVED live UI. Do not treat Launch points as Connected.</p>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">Lead Radar</span>
+            <span class="badge connected">Connected</span>
+          </div>
+          <p class="small muted">Protected upsert with duplicate protection. Opens into Lead Center / Job Radar.</p>
+          <button type="button" class="btn btn-outline" style="margin-top:10px" data-nav="lead-center">Open Lead Center</button>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">Live web search</span>
+            <span class="badge connected">Connected</span>
+          </div>
+          <p class="small muted">Source-verified Pittsburgh discovery (capability status from live UI — not executed in this shell).</p>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">Notion</span>
+            <span class="badge launch">Launch point</span>
+          </div>
+          <p class="small muted">Read the durable Job Radar mirror and organized knowledge.</p>
+          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="#" id="linkNotion">Open Job Radar</a>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">Gmail</span>
+            <span class="badge launch">Launch point</span>
+          </div>
+          <p class="small muted">Review drafts and send only after you approve them.</p>
+          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="#" id="linkGmail">Open drafts</a>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">Google Calendar</span>
+            <span class="badge launch">Launch point</span>
+          </div>
+          <p class="small muted">Schedule estimates and follow-ups.</p>
+          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="#" id="linkCalendar">Open calendar</a>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">Canva</span>
+            <span class="badge launch">Launch point</span>
+          </div>
+          <p class="small muted">Turn Studio prompts into designs.</p>
+          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="https://www.canva.com" target="_blank" rel="noopener">Open Canva</a>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
+            <span class="conn-name">VEED</span>
+            <span class="badge launch">Launch point</span>
+          </div>
+          <p class="small muted">Video edits for Lil Wiz-Nap / creative work.</p>
+          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="https://www.veed.io" target="_blank" rel="noopener">Open VEED</a>
+        </div>
+
+        <div class="answer-panel" id="connAnswer" style="display:none;margin-top:8px"></div>
+        <p class="safety-note">Connection rule (OBSERVED): external services are not silently or automatically connected.</p>
+      </section>
+
+      <!-- ========== SEARCH (stub) ========== -->
+      <section class="view" id="view-search" data-view="search">
+        <button type="button" class="small gold" data-nav="home" style="margin-bottom:10px">← Back</button>
+        <h1 style="font-size:22px">Local search</h1>
+        <p class="muted small" style="margin-bottom:12px">Explicitly not live internet search. Fixture results only · client-side filter.</p>
+        <input type="search" id="searchInput" placeholder="Search saved work…" autocomplete="off" />
+        <p class="small dim" id="searchMeta" style="margin:8px 0">Showing all fixture cards</p>
+        <div id="searchResults"></div>
+      </section>
+
+      <!-- ========== VAULT (stub dialog content as view) ========== -->
+      <section class="view" id="view-vault" data-view="vault">
+        <button type="button" class="small gold" data-nav="home" style="margin-bottom:10px">← Close</button>
+        <div class="card glow" style="text-align:center;padding:28px 16px">
+          <div class="section-label">Secret Vault</div>
+          <p class="small muted">Creative workspace · Lil Wiz-Nap</p>
+          <p class="small dim">Pittsburgh · transmission 001</p>
+          <h2 style="margin:16px 0;color:var(--violet-glow)">YOU WEREN'T SUPPOSED TO FIND THIS</h2>
+          <p class="small muted">Unreleased sound / vision copy. Inner vault not explored on live walk.</p>
+          <a class="btn btn-outline" style="margin-top:16px" href="https://lil-wiznap-secret.tranglec.chatgpt.site" target="_blank" rel="noopener">Open full screen (satellite)</a>
+          <p class="small dim" style="margin-top:12px">In-app iframe stub — no sound enabled.</p>
+        </div>
+      </section>
+
+
+      <!-- ========== SETTINGS ========== -->
+      <section class="view" id="view-settings" data-view="settings">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">System tools</div>
+        <h1 style="font-size:22px">Settings</h1>
+        <p class="muted small" style="margin-bottom:6px">Routing selectors + triggers from live walk [15]. No scheduler · <span class="demo-badge">Fixture</span></p>
+        <p class="small local-note" style="margin-bottom:14px" id="settingsSavedNote">Saved on this device only</p>
+
+        <div class="card">
+          <h2>Routing profiles</h2>
+          <p class="small muted" style="margin-bottom:10px">First four routes map to core agents (OBSERVED). Selectors do not call APIs.</p>
+          <div id="routingSelectors"></div>
+        </div>
+
+        <div class="card">
+          <h2>Triggers</h2>
+          <p class="small muted" style="margin-bottom:10px">No background scheduler claimed on live walk.</p>
+          <div id="triggerList"></div>
+        </div>
+      </section>
+
+      <!-- ========== SECURITY ========== -->
+      <section class="view" id="view-security" data-view="security">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Bastion · local checks</div>
+        <h1 style="font-size:22px">Security</h1>
+        <p class="muted small" style="margin-bottom:14px">Local checks UI fixture from [16]. Checks not run in this shell.</p>
+
+        <div class="stat-grid">
+          <div class="stat-box"><div class="num">1</div><div class="lbl">Needs attention</div></div>
+          <div class="stat-box"><div class="num">10</div><div class="lbl">Audit events</div></div>
+          <div class="stat-box"><div class="num">0</div><div class="lbl">Stored artwork</div></div>
+          <div class="stat-box"><div class="num">—</div><div class="lbl">Restore</div></div>
+        </div>
+
+        <div class="card">
+          <h2>Findings <span class="demo-badge">Fixture</span></h2>
+          <ul class="finding-list">
+            <li><span class="ok">Healthy</span> No API keys stored</li>
+            <li><span class="ok">Healthy</span> 0 apparel images</li>
+            <li><span class="warn">Review</span> No local restore point</li>
+            <li><span class="ok">Healthy</span> External services not silently connected</li>
+          </ul>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
+            <button type="button" class="btn btn-outline" id="btnRunChecks">Run local checks</button>
+            <button type="button" class="btn btn-ghost" id="btnCreateSnap">Create snapshot</button>
+            <button type="button" class="btn btn-ghost" disabled>Restore snapshot</button>
+            <button type="button" class="btn btn-ghost" id="btnClearArt">Clear artwork cache</button>
+          </div>
+          <div class="answer-panel" id="securityAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h2>Audit log <span class="demo-badge">Fixture</span></h2>
+          <div id="auditLog" class="audit-log"></div>
+        </div>
+      </section>
+
+      <!-- ========== MEMORY ========== -->
+      <section class="view" id="view-memory" data-view="memory">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Second Brain</div>
+        <h1 style="font-size:22px">Memory</h1>
+        <p class="muted small" style="margin-bottom:6px">3 fixture memories from [22] + anything you capture here.</p>
+        <p class="small local-note" style="margin-bottom:14px">Saved on this device only</p>
+
+        <div class="stat-row">
+          <div><div class="num" id="memCountInbox">1</div><div class="lbl">Inbox</div></div>
+          <div><div class="num" id="memCountLinked">2</div><div class="lbl">Linked</div></div>
+          <div><div class="num" id="memCountAll">3</div><div class="lbl">All</div></div>
+        </div>
+
+        <div class="tabs" role="tablist" style="margin:12px 0">
+          <button type="button" class="tab active" data-memory-tab="inbox">Inbox</button>
+          <button type="button" class="tab" data-memory-tab="feed">Feed</button>
+          <button type="button" class="tab" data-memory-tab="graph">Graph</button>
+        </div>
+        <div id="memoryList"></div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>Capture</h2>
+          <div class="form-group"><label>Idea</label><input type="text" id="memIdea" placeholder="What stuck?" /></div>
+          <div class="form-group"><label>Useful detail</label><textarea id="memDetail" placeholder="Lead-prep detail…"></textarea></div>
+          <div class="form-group"><label>Workspace</label>
+            <select id="memWorkspace"><option>All work</option><option>Business</option><option>Music</option><option>Creative</option><option>Personal</option></select>
+          </div>
+          <button type="button" class="btn btn-outline btn-block" id="btnSaveMemory">Save memory</button>
+          <div class="answer-panel" id="memoryAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+      </section>
+
+      <!-- ========== KNOWLEDGE ========== -->
+      <section class="view" id="view-knowledge" data-view="knowledge">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Second Brain</div>
+        <h1 style="font-size:22px">Knowledge</h1>
+        <p class="muted small" style="margin-bottom:6px">12-item library summary from [23] <span class="demo-badge">Fixture</span> + items you add here.</p>
+        <p class="small local-note" style="margin-bottom:14px">Saved on this device only</p>
+
+        <div class="stat-row">
+          <div><div class="num" id="kCountAll">12</div><div class="lbl">Items</div></div>
+          <div><div class="num" id="kCountAlways">9</div><div class="lbl">Always remember</div></div>
+          <div><div class="num" id="kCountGlobal">11</div><div class="lbl">Global</div></div>
+          <div><div class="num" id="kCountProject">1</div><div class="lbl">Project-only</div></div>
+        </div>
+
+        <div id="knowledgeList" style="margin-top:12px"></div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>Add knowledge</h2>
+          <div class="form-group"><label>Name</label><input type="text" id="kName" placeholder="e.g. Estimate follow-up rule" /></div>
+          <div class="form-group"><label>Kind</label>
+            <select id="kKind"><option>Document</option><option>Image reference</option><option>Note</option><option selected>Rule</option><option>Brand</option><option>Asset</option></select>
+          </div>
+          <div class="form-group"><label>Scope</label>
+            <select id="kScope"><option>Global</option><option>Project</option></select>
+          </div>
+          <label class="radio-row" style="margin-bottom:10px"><input type="checkbox" id="kAlways" checked /> Always remember</label>
+          <button type="button" class="btn btn-outline btn-block" id="btnAddKnowledge">Add knowledge</button>
+          <p class="small dim" style="margin-top:6px">Text only — no file upload in this shell.</p>
+          <div class="answer-panel" id="knowledgeAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+      </section>
+
+      <!-- ========== STUDIO ========== -->
+      <section class="view" id="view-studio" data-view="studio">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Creative · LWN</div>
+        <h1 style="font-size:22px">Studio</h1>
+        <p class="muted small" style="margin-bottom:14px">Visual prompt builder surface from [24]. No image generator or credits.</p>
+
+        <div class="card glow">
+          <div class="section-label">Visual worlds</div>
+          <div class="chip-row" id="studioWorlds"></div>
+        </div>
+
+        <div class="card">
+          <h2>Composer</h2>
+          <div class="form-group"><label>Idea</label><input type="text" id="studioIdea" placeholder="Visual direction…" /></div>
+          <div class="form-group"><label>Format</label>
+            <div class="chip-row" id="studioFormats"></div>
+          </div>
+          <div class="form-group"><label>Context / Project / Style</label>
+            <select id="studioContext">
+              <option>Lil Wiz-Nap identity</option>
+              <option>UTC.OS</option>
+              <option>UP2CODE</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-gold btn-block" id="btnBuildPrompt">Build prompt</button>
+          <p class="safety-note">Stub only — no image credits spent; matches OBSERVED “no image generator”.</p>
+          <div class="answer-panel" id="studioAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <h2>History <span class="demo-badge">Fixture</span></h2>
+          <p class="small">1 saved prompt · Album cover 1:1 Music · Lil Wiz-Nap identity</p>
+          <button type="button" class="btn btn-ghost btn-block" id="btnCopyHistory">Copy history (stub)</button>
+        </div>
+      </section>
+
+      <!-- ========== MOCKUP ========== -->
+      <section class="view" id="view-mockup" data-view="mockup">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Apparel layouts</div>
+        <h1 style="font-size:22px">Mockup generator</h1>
+        <p class="muted small" style="margin-bottom:14px">Four-step Artwork → Product → Placement → Finish from [25]. Stub surface.</p>
+
+        <div class="card glow">
+          <div class="section-label">Step <span id="mockupStepLabel">1</span> of 4</div>
+          <div class="step-pills" id="mockupSteps">
+            <button type="button" class="step-pill active" data-mock-step="1">Artwork</button>
+            <button type="button" class="step-pill" data-mock-step="2">Product</button>
+            <button type="button" class="step-pill" data-mock-step="3">Placement</button>
+            <button type="button" class="step-pill" data-mock-step="4">Finish</button>
+          </div>
+          <div id="mockupPanel" style="margin-top:12px"></div>
+          <p class="small dim" style="margin-top:10px">0 saved mockups · transparent PNG under 1.5 MB recommended</p>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button type="button" class="btn btn-ghost" id="btnMockPrev">Back</button>
+            <button type="button" class="btn btn-outline" id="btnMockNext">Next</button>
+          </div>
+          <div class="answer-panel" id="mockupAnswer" style="display:none;margin-top:8px"></div>
+        </div>
+      </section>
+
+      <!-- ========== TEAM ========== -->
+      <section class="view" id="view-team" data-view="team">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div class="section-label">Agent Team</div>
+        <h1 style="font-size:22px">Team</h1>
+        <p class="muted small" style="margin-bottom:8px">Four core personalities + ten specialists from [21]. <span class="demo-badge">Fixture</span></p>
+        <p class="safety-note">Code remains final authority; active agent does not grant outside-action permission.</p>
+        <p class="small dim">Tap a specialist to open its page. Sauce Sensei has the full specialist module [26].</p>
+
+        <h2 style="margin:14px 0 8px">Core four</h2>
+        <div id="teamCore"></div>
+
+        <h2 style="margin:18px 0 8px">Specialists</h2>
+        <div id="teamSpecialists"></div>
+      </section>
+
+      <!-- ========== SPECIALIST ========== -->
+      <section class="view" id="view-specialist" data-view="specialist">
+        <button type="button" class="small gold" data-nav="team" style="margin-bottom:10px">← Back to Team</button>
+        <div id="specialistBody"></div>
+      </section>
+
+      <!-- ========== LESSON ========== -->
+      <section class="view" id="view-lesson" data-view="lesson">
+        <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
+        <div id="lessonBody"></div>
+      </section>
+
+      <p class="recon-footer">Reconstruction shell — not live utc-os-app · Phase 5 shell</p>
+    </main>
+
+    <nav class="bottom-nav" id="bottomNav" aria-label="Primary">
+      <button type="button" class="nav-item active" data-nav="home">
+        <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        Home
+      </button>
+      <button type="button" class="nav-item" data-nav="today">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        Today
+      </button>
+      <button type="button" class="nav-item" data-nav="forge">
+        <svg viewBox="0 0 24 24"><path d="M14 5l5 5-9 9H5v-5l9-9z"/><path d="M12 7l5 5"/></svg>
+        Forge
+      </button>
+      <button type="button" class="nav-item" data-nav="lead-center">
+        <svg viewBox="0 0 24 24"><path d="M4 19l5-9 4 5 3-6 4 10"/><path d="M3 19h18"/></svg>
+        Leads
+      </button>
+      <button type="button" class="nav-item" data-nav="skills">
+        <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0114-5"/><path d="M20 12a8 8 0 01-14 5"/><path d="M18 4v4h-4M6 20v-4h4"/></svg>
+        Skills
+      </button>
+      <button type="button" class="nav-item" data-nav="system">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+        System
+      </button>
+    </nav>
+
+    <div class="toast" id="toast" role="status">
+      <span id="toastMsg">Sauce Sensei is now the active intelligence.</span>
+      <button type="button" class="dismiss" id="toastDismiss">Dismiss</button>
+    </div>
+
+    <div class="dialog-backdrop" id="leadDialog" role="dialog" aria-modal="true" aria-labelledby="leadDialogTitle">
+      <div class="dialog">
+        <div class="dialog-header">
+          <div>
+            <div class="section-label">Lead detail <span class="demo-badge">Demo data</span></div>
+            <h2 id="leadDialogTitle">Lead</h2>
+          </div>
+          <button type="button" class="dialog-close" id="leadDialogClose" aria-label="Close">×</button>
+        </div>
+        <div id="leadDialogBody"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
