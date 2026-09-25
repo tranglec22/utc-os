@@ -1,4 +1,4 @@
-# UTC.OS Reconstruction Shell — Phase 5
+# UTC.OS Reconstruction Shell — Phase 6
 
 **This is a reconstruction shell — not the live utc-os-app.**
 
@@ -106,7 +106,7 @@ Header active-agent avatar (`btnActiveAgent`) focuses Home cockpit for the curre
 | Lead Center | Job Radar region (no run); pipeline; 5 fixture leads + detail dialog |
 | Connections | Lead Radar **Connected**; Live web search **Connected**; Notion / Gmail / Calendar / Canva / VEED = **Launch point** only |
 | Banner | “Reconstruction shell — not live utc-os-app” |
-| Footer | Phase 5 shell |
+| Footer | Phase 6 shell |
 
 ## Intentional stubs
 
@@ -122,7 +122,32 @@ Header active-agent avatar (`btnActiveAgent`) focuses Home cockpit for the curre
 - Secret Vault — landing + satellite link
 - Media player, Crew, Materials, Profit — Coming soon
 - No stock photos, no fake customer reviews, no invented Connected OAuth
-- No live API calls of any kind; no `alert()` anywhere (in-page panels instead)
+- No live API calls unless YOU add your own OpenAI key (Phase 6); no `alert()` anywhere (in-page panels instead)
+
+## Phase 6 — optional AI (bring your own OpenAI key)
+
+**Off by default.** Without a key, nothing changes: chats run the local command engine and unknown input gets the honest “Real AI isn't connected yet” reply, which now points to Settings.
+
+**Turn it on:** System → Settings → **AI connection (bring your own key)**.
+- Paste an OpenAI API key (password field), pick or type a model (default `gpt-4o-mini`), tap **Save**, then **Test**.
+- **Remove** deletes the key from this device. **Reset local data** also removes it.
+- Warnings shown on screen: the key is saved in this browser on this device only; usage is billed to your OpenAI account; don't use it on shared devices.
+
+**Where the key lives:** `localStorage` key `utcos-shell:aiKey`, on this device only. It is **excluded from Export backups** (the export message says so), ignored if a backup file contains one, kept as-is when you Import, never logged, never written to chat history, and sent only in the `Authorization` header of requests to `https://api.openai.com/v1/chat/completions`. The Test result is stored in `utcos-shell:aiVerified` (also never exported). The model choice (`utcos-shell:aiModel`) is exported.
+
+**How chat uses it:**
+1. Local commands always run first (tasks, leads, habits, goals, memory, design log, open, status, help…). They never call AI.
+2. If no command matches **and** a key is saved, the browser calls OpenAI directly (no UTC.OS server). The request carries:
+   - a system prompt for that agent: Kara (daily co-pilot), Margaret (CEO / executive overseer), Jarvis (system core / technical), Sauce Sensei (creative director for Lil Wiz-Nap, with the style profile), or the specialist's role; plus UP2CODE Painting & Contracting, Pittsburgh, “We Don't Just Paint — We Elevate”, and a “plain, simple language” instruction;
+   - a compact summary of your local data: coin world, today's focus and key tasks, habits and streaks, goals, leads with stage (demo data), recent memories, recent Sauce decisions;
+   - the last ~10 messages of that agent's chat, then your message.
+   The model is told it **cannot take actions** and should suggest the exact local command instead.
+3. While waiting you see “Thinking…”. AI replies are labeled **“AI · model”**; local replies say **“local”**.
+4. Errors come back as plain chat messages and never crash the app: bad key (401, which also clears the Test status), rate limit or quota (429), offline or blocked network, unknown model (404), timeout after 30 seconds.
+
+**Honest status:** Connections → “OpenAI (your key)” and Jarvis `status` say **Connected on this device** only after a successful Test with the saved key; otherwise **Not connected**. The reconstruction banner stays.
+
+**Service worker:** cache `utcos-shell-v6`. It never touches POSTs or `api.openai.com` requests (nothing from OpenAI is ever cached).
 
 ## Phase 5 — working features
 

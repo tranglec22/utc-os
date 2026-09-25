@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050508" />
-  <meta name="description" content="UTC.OS reconstruction shell — Phase 5 shell. Not the live utc-os-app." />
+  <meta name="description" content="UTC.OS reconstruction shell — Phase 6 shell. Not the live utc-os-app." />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -137,7 +137,7 @@
               <button type="button" class="icon-btn" title="Speak (stub)" aria-label="Speak" disabled>🎤</button>
               <button type="button" class="btn btn-gold" id="btnSend" style="border-radius:8px;padding:8px 14px">Send</button>
             </div>
-            <p class="small dim" style="margin-top:8px">Local command engine acting on data saved on this device. No AI model or agent API is connected — type <strong>help</strong> for commands.</p>
+            <p class="small dim" style="margin-top:8px" id="cockpitFootnote">Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.</p>
           </div>
 
           <div class="card">
@@ -631,6 +631,15 @@
 
         <div class="conn-card">
           <div class="conn-card-top">
+            <span class="conn-name">OpenAI (your key)</span>
+            <span class="badge notconn" id="aiConnBadge">Not connected</span>
+          </div>
+          <p class="small muted" id="aiConnDetail">No key saved. Optional: add your own OpenAI key in Settings → AI connection.</p>
+          <button type="button" class="btn btn-outline" style="margin-top:10px" data-nav="settings">Open Settings</button>
+        </div>
+
+        <div class="conn-card">
+          <div class="conn-card-top">
             <span class="conn-name">Notion</span>
             <span class="badge launch">Launch point</span>
           </div>
@@ -721,6 +730,39 @@
           <h2>Triggers</h2>
           <p class="small muted" style="margin-bottom:10px">No background scheduler claimed on live walk.</p>
           <div id="triggerList"></div>
+        </div>
+
+        <div class="card ai-card" id="aiCard">
+          <h2>AI connection (bring your own key)</h2>
+          <p class="small muted" style="margin:4px 0 8px">Optional. With your own OpenAI API key, agent chats answer anything local commands can't handle. Local commands always run first and never use AI.</p>
+          <ul class="ai-warn-list small">
+            <li>Your key is saved <strong>in this browser on this device only</strong> — never synced, never in backups, never in chat history.</li>
+            <li>Usage is <strong>billed to your OpenAI account</strong>. Each AI reply sends your question, recent chat with that agent, and a short summary of your local data (tasks, habits, goals, leads, memories, design decisions) to OpenAI.</li>
+            <li><strong>Don't use this on a shared or public device.</strong> Tap Remove when you're done if others use this browser.</li>
+          </ul>
+          <p class="small muted" id="aiKeyState" style="margin:10px 0 6px">No key saved</p>
+          <div class="form-group">
+            <label for="aiKeyInput">OpenAI API key</label>
+            <input type="password" id="aiKeyInput" placeholder="sk-…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          </div>
+          <div class="form-group">
+            <label for="aiModelInput">Model (pick or type)</label>
+            <input type="text" id="aiModelInput" list="aiModelList" value="gpt-4o-mini" autocomplete="off" autocapitalize="off" spellcheck="false" />
+            <datalist id="aiModelList">
+              <option value="gpt-4o-mini"></option>
+              <option value="gpt-4.1-mini"></option>
+              <option value="gpt-4.1-nano"></option>
+              <option value="gpt-4o"></option>
+              <option value="gpt-4.1"></option>
+            </datalist>
+          </div>
+          <div class="ai-btn-row">
+            <button type="button" class="btn btn-gold" id="btnAiSave">Save</button>
+            <button type="button" class="btn btn-outline" id="btnAiTest" disabled>Test</button>
+            <button type="button" class="btn btn-ghost" id="btnAiRemove" disabled>Remove</button>
+          </div>
+          <div class="answer-panel" id="aiAnswer" style="display:none" role="status"></div>
+          <p class="small dim" style="margin-top:8px">Calls go straight from this browser to api.openai.com — no UTC.OS server in between. Export backups exclude the key; Reset local data removes it.</p>
         </div>
       </section>
 
@@ -917,7 +959,7 @@
         <div id="lessonBody"></div>
       </section>
 
-      <p class="recon-footer">Reconstruction shell — not live utc-os-app · Phase 5 shell</p>
+      <p class="recon-footer">Reconstruction shell — not live utc-os-app · Phase 6 shell</p>
     </main>
 
     <nav class="bottom-nav" id="bottomNav" aria-label="Primary">

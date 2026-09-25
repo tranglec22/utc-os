@@ -3,7 +3,9 @@
    Phase 3: localStorage persistence (utcos-shell:*), specialist pages,
    Brain map, Setup checks, lesson views, PWA install wiring.
    Phase 5: habits, goals, lesson progress + notes, and a local command
-   engine for agent chats ("Local assistant, no AI connected"). */
+   engine for agent chats ("Local assistant, no AI connected").
+   Phase 6: optional AI replies with the user's own OpenAI key (stored on
+   this device only, never exported); local commands always run first. */
 
 (function () {
   "use strict";
@@ -1961,7 +1963,9 @@
         return;
       }
       const keys = {};
+      // Phase 6: the OpenAI key (and its test status) never leave this device.
       store.keys().forEach((k) => {
+        if (AI_PRIVATE_KEYS.indexOf(k) >= 0) return;
         keys[k] = window.localStorage.getItem(k);
       });
       const payload = {
@@ -1994,7 +1998,8 @@
           Object.keys(keys).length +
           " local key(s) to " +
           a.download +
-          ". File stays on this device."
+          ". File stays on this device." +
+          (aiKey() ? " Your OpenAI key was NOT included — it stays in this browser only." : "")
       );
     });
 
@@ -2026,6 +2031,7 @@
         }
         const entries = Object.keys(payload.keys).filter((k) => {
           if (k.indexOf(STORE_PREFIX) !== 0) return false;
+          if (AI_PRIVATE_KEYS.indexOf(k) >= 0) return false;
           const v = payload.keys[k];
           if (typeof v !== "string") return false;
           try {
@@ -2050,7 +2056,12 @@
           dataMsg("Import cancelled. Nothing changed.");
           return;
         }
+        // Keep this device's own OpenAI key (never part of a backup).
+        const keepAi = AI_PRIVATE_KEYS.map((k) => [k, window.localStorage.getItem(k)]);
         store.clearAll();
+        keepAi.forEach(([k, v]) => {
+          if (v != null) window.localStorage.setItem(k, v);
+        });
         entries.forEach((k) => window.localStorage.setItem(k, payload.keys[k]));
         flashAndReload("Imported " + entries.length + " local key(s) from backup. Saved on this device only.");
       };
@@ -2066,7 +2077,7 @@
       const ok = window.confirm(
         "Reset local data? This clears " +
           n +
-          " utcos-shell: key(s) on this device (tasks, habits, goals, lessons, chats, notes, runs, memories, decisions, settings). Fixture data stays."
+          " utcos-shell: key(s) on this device (tasks, habits, goals, lessons, chats, notes, runs, memories, decisions, settings" + (aiKey() ? ", and your saved OpenAI key" : "") + "). Fixture data stays."
       );
       if (!ok) {
         dataMsg("Reset cancelled. Nothing changed.");
@@ -2379,6 +2390,7 @@
       '<p class="safety-note">' + AUTHORITY_NOTE + "</p>" +
       '<p class="small dim" style="margin:8px 2px 14px">Role name from Team [21]. Responsibilities and reporting wording are reconstructed — live text was not captured verbatim.</p>';
     mountChat($("#specReply"), () => spec.id);
+    updateAiUI();
     const sendSpec = () => {
       const q = ($("#specAsk").value || "").trim();
       if (!q) {
@@ -2458,6 +2470,7 @@
       $("#sauceProfileProject").textContent = state.sauceProject;
     });
     mountChat($("#sauceReply"), () => "sauce");
+    updateAiUI();
     const sendSauce = () => {
       const q = ($("#sauceAsk").value || "").trim();
       if (!q) {
@@ -3424,7 +3437,9 @@
       "Service worker: " + (typeof swState === "string" ? swState : "unknown") + " · " + (standalone ? "installed app" : "browser tab"),
       "Network: " + (navigator.onLine ? "online" : "offline") + " — this shell makes no API calls either way.",
       "Connections (as captured in the live walk): Lead Radar and Live web search show Connected there; this shell does not run them. Notion, Gmail, Calendar, Canva, VEED are launch points only.",
-      "AI: none connected. Replies come from the local command engine.",
+      aiVerified()
+        ? "AI: OpenAI (your key): Connected on this device · " + aiModel() + " · used only when no local command matches."
+        : "AI: OpenAI (your key): Not connected" + (aiKey() ? " — key saved but not tested; run Test in Settings." : ". Replies come from the local command engine."),
       "Data: " + state.keyTasks.length + " tasks · " + state.habits.length + " habits · " + state.goals.length + " goals · " + state.memoriesAdded.length + " memories · " + state.sauceDecisions.length + " design decisions · " + Object.keys(state.chats).length + " chat thread(s).",
     ].join("\n");
   }
@@ -3649,7 +3664,7 @@
 
     return {
       text:
-        "Real AI isn't connected yet, so I can only run local commands on data saved on this device. I didn't understand “" + text + "”.\nTry: “what's on today”, “add task …”, “hot leads”, “my streaks”, “remember …”, or “help”.",
+        "Real AI isn't connected yet, so I can only run local commands on data saved on this device. I didn't understand “" + text + "”.\nTry: “what's on today”, “add task …”, “hot leads”, “my streaks”, “remember …”, or “help”.\nTo turn on AI replies, add your own OpenAI key in System → Settings → AI connection.",
       kind: "unknown",
     };
   }
@@ -3672,9 +3687,9 @@
     return r.text;
   }
 
-  function pushChat(key, role, text) {
+  function pushChat(key, role, text, meta) {
     const list = state.chats[key] || (state.chats[key] = []);
-    list.push({ role: role, text: text, at: new Date().toISOString() });
+    list.push(Object.assign({ role: role, text: text, at: new Date().toISOString() }, meta || {}));
     if (list.length > CHAT_CAP) list.splice(0, list.length - CHAT_CAP);
   }
 
@@ -3699,6 +3714,12 @@
     } catch (e) {
       r = { text: "Local engine error — nothing was changed. (" + (e && e.message) + ")", kind: "miss" };
     }
+    if (r.kind === "unknown" && aiKey()) {
+      // Phase 6: no local command matched and the user saved their own key.
+      saveChats();
+      aiReply(key, q);
+      return null;
+    }
     const reply = voiced(key, r);
     pushChat(key, "agent", reply);
     saveChats();
@@ -3718,14 +3739,24 @@
       el.innerHTML = '<div class="chat-empty">' + escapeHtml(online) + " Type <strong>help</strong> to see what I can do locally.</div>";
       return;
     }
-    el.innerHTML = list
-      .map(
-        (m) =>
-          '<div class="chat-msg ' + m.role + '">' +
-          (m.role === "agent" ? '<div class="chat-who">' + escapeHtml(name) + " · local</div>" : "") +
-          '<div class="chat-text">' + escapeHtml(m.text) + "</div></div>"
-      )
-      .join("");
+    const who = (m) =>
+      m.src === "ai"
+        ? escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(m.model || "model") + "</span>"
+        : m.src === "ai-error"
+          ? escapeHtml(name) + ' · <span class="ai-tag err">AI · not answered</span>'
+          : escapeHtml(name) + " · local";
+    el.innerHTML =
+      list
+        .map(
+          (m) =>
+            '<div class="chat-msg ' + m.role + (m.src ? " " + m.src : "") + '">' +
+            (m.role === "agent" ? '<div class="chat-who">' + who(m) + "</div>" : "") +
+            '<div class="chat-text">' + escapeHtml(m.text) + "</div></div>"
+        )
+        .join("") +
+      (aiPending[key]
+        ? '<div class="chat-msg agent thinking" role="status"><div class="chat-who">' + escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(aiModel()) + '</span></div><div class="chat-text">Thinking<span class="dots"><i>.</i><i>.</i><i>.</i></span></div></div>'
+        : "");
     el.scrollTop = el.scrollHeight;
   }
 
@@ -3749,6 +3780,284 @@
     delete state.chats[key];
     saveChats();
     renderAllChats();
+  }
+
+  /* =========================================================
+     Phase 6 — Optional AI (bring your own OpenAI key).
+     The key lives ONLY in localStorage (utcos-shell:aiKey) on this
+     device. It is never logged, never exported, never put in chat
+     history. AI is only called when a local command doesn't match
+     AND the user has saved a key.
+     ========================================================= */
+
+  const AI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+  const AI_DEFAULT_MODEL = "gpt-4o-mini";
+  const AI_MODELS = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4.1"];
+  const AI_PRIVATE_KEYS = [STORE_PREFIX + "aiKey", STORE_PREFIX + "aiVerified"];
+  const aiPending = {};
+
+  function aiKey() {
+    const k = store.get("aiKey", "");
+    return typeof k === "string" ? k : "";
+  }
+  function aiModel() {
+    const m = store.get("aiModel", AI_DEFAULT_MODEL);
+    return typeof m === "string" && m.trim() ? m.trim() : AI_DEFAULT_MODEL;
+  }
+  function aiVerified() {
+    const v = store.get("aiVerified", null);
+    return aiKey() && isObj(v) && v.ok ? v : null;
+  }
+  function aiUnverify() {
+    try {
+      window.localStorage.removeItem(STORE_PREFIX + "aiVerified");
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  function redact(s) {
+    return String(s || "").replace(/sk-[A-Za-z0-9_\-*.]{4,}/g, "[key hidden]");
+  }
+
+  const AI_BRAND =
+    "Context: UTC.OS is Cody's personal operating system. Cody runs UP2CODE Painting & Contracting in Pittsburgh, PA " +
+    "(tagline: \"We Don't Just Paint — We Elevate\") and makes music and visuals as Lil Wiz-Nap. ";
+
+  function aiRolePrompt(key) {
+    const roles = {
+      kara: "You are Kara, Cody's Co-Pilot and Chief of Staff: daily operations and creative flow. Warm, organized, practical. You help plan the day, break work into next steps, and keep momentum.",
+      margaret: "You are Margaret, CEO / Executive Intelligence: the executive overseer. Measured and decisive. You give the big-picture read on priorities, risk, revenue and people, and make clear recommendations.",
+      jarvis: "You are Jarvis, System Core / Technical Intelligence. Crisp and technical but plain-spoken. You explain how the system works, diagnose problems, and suggest automation — honestly, without claiming capabilities the shell doesn't have.",
+      sauce:
+        "You are Sauce Sensei, Creative Architect + Aesthetic Director for Lil Wiz-Nap and UTC.OS. Expressive and visual. Style profile: near-black / obsidian base, rich purple and blue-violet depth, magenta used sparingly, antique gold for authority, purposeful glow that marks focus (not decoration), display serif for hierarchy and clean sans for body. Reject generic startup cards and washed-out palettes.",
+    };
+    if (roles[key]) return roles[key];
+    const spec = SPECIALISTS.find((s) => s.id === key);
+    const d = (spec && SPECIALIST_DETAILS[spec.id]) || {};
+    return (
+      "You are " + (spec ? spec.name : "a specialist") + ", the " + (spec ? spec.role : "specialist") + " on Cody's UTC.OS team" +
+      (d.reportsTo ? ", reporting to " + d.reportsTo : "") + ". Stay in that lane." +
+      (d.responsibilities && d.responsibilities.length ? " Focus: " + d.responsibilities.join("; ") + "." : "")
+    );
+  }
+
+  function aiDataSummary() {
+    const tk = dayKey();
+    const lines = [];
+    lines.push("Coin world: " + (state.world === "lilwiznap" ? "Lil Wiz-Nap (creative)" : "UP2CODE (business)") + ". Today is " + tk + ".");
+    if (state.todayFocus) lines.push("Today's focus: " + state.todayFocus);
+    if (state.todayCommitment) lines.push("Fixed commitment: " + state.todayCommitment);
+    lines.push("Key tasks: " + (state.keyTasks.length ? state.keyTasks.map((t) => (t.done ? "[done] " : "[open] ") + t.title).join("; ") : "none"));
+    lines.push("Habits: " + (state.habits.length ? state.habits.map((h) => h.name + " (" + (h.log[tk] ? "done today" : "not yet today") + ", streak " + habitCurrentStreak(h) + ", best " + habitBestStreak(h) + ")").join("; ") : "none"));
+    lines.push("Goals: " + (state.goals.length ? state.goals.map((g) => g.title + " — " + goalPercent(g) + "% · " + g.category + (g.target ? " · target " + g.target : "") + (g.done ? " · done" : "")).join("; ") : "none"));
+    lines.push("Leads (demo/fixture data): " + FIXTURE_LEADS.map((l) => l.company + " — " + l.title + " · " + l.status + " · " + l.band + " " + l.score + (l.note && l.note !== "—" ? " · note: " + l.note : "")).join("; "));
+    const mem = state.memoriesAdded.slice(-5).map((m) => m.title);
+    lines.push("Recent memories: " + (mem.length ? mem.join("; ") : "none saved"));
+    const dec = state.sauceDecisions.slice(-4).map((d) => d.verdict + ": " + d.text);
+    lines.push("Recent design decisions: " + (dec.length ? dec.join("; ") : "none"));
+    return lines.join("\n").slice(0, 3500);
+  }
+
+  function aiSystemPrompt(key) {
+    return (
+      aiRolePrompt(key) + "\n" + AI_BRAND + "\n" +
+      "Use plain, simple language. Keep answers short (under about 150 words) and phone-friendly.\n" +
+      "You CANNOT take actions, send messages, browse, or change data yourself. If something should be saved or changed, tell Cody the exact local command to type, chosen from: " +
+      "add task <x> · what's on today · mark <x> done · show leads · hot leads · leads in <stage> · add note to <lead>: <text> · add habit <x> · check habit <x> · my streaks · add goal <x> [by <date>] · remember <x> · what do you remember · log decision <x> approved|rejected|explore · open <screen> · help.\n" +
+      "Leads are demo data in this reconstruction shell. Don't invent facts about Cody's business beyond the data below; say when you don't know.\n\n" +
+      "Cody's local data right now:\n" + aiDataSummary()
+    );
+  }
+
+  /** Low-level call. Returns {ok, text, model} or {ok:false, error, status}. Never logs or returns the key. */
+  async function aiCall(messages, maxTokens) {
+    const key = aiKey();
+    if (!key) return { ok: false, error: "No OpenAI key saved. Add one in System → Settings → AI connection.", status: 0 };
+    if (typeof navigator !== "undefined" && navigator.onLine === false)
+      return { ok: false, error: "You're offline, so I can't reach OpenAI. Local commands still work.", status: 0, offline: true };
+    const model = aiModel();
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 30000) : null;
+    let res;
+    try {
+      res = await fetch(AI_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+        body: JSON.stringify({ model: model, messages: messages, max_completion_tokens: maxTokens || 500 }),
+        signal: ctrl ? ctrl.signal : undefined,
+        cache: "no-store",
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+      });
+    } catch (e) {
+      if (timer) clearTimeout(timer);
+      const aborted = e && e.name === "AbortError";
+      return {
+        ok: false,
+        status: 0,
+        offline: !aborted,
+        error: aborted
+          ? "OpenAI took too long to answer (30s). Try again."
+          : "Couldn't reach OpenAI — you may be offline or a network/browser setting blocked it. Local commands still work.",
+      };
+    }
+    if (timer) clearTimeout(timer);
+    let body = null;
+    try {
+      body = await res.json();
+    } catch (e) {
+      body = null;
+    }
+    if (res.status === 401) {
+      aiUnverify();
+      return { ok: false, status: 401, error: "OpenAI rejected the key (401). Check or replace it in System → Settings → AI connection." };
+    }
+    if (res.status === 429) {
+      return { ok: false, status: 429, error: "OpenAI says you've hit a rate limit or your quota/billing limit (429). Wait a bit or check your OpenAI billing." };
+    }
+    if (res.status === 404 && body && body.error) {
+      return { ok: false, status: 404, error: "OpenAI doesn't recognize the model “" + model + "” for this key (404). Pick another model in Settings." };
+    }
+    if (!res.ok) {
+      const msg = body && body.error && body.error.message ? redact(body.error.message).slice(0, 200) : "no details";
+      return { ok: false, status: res.status, error: "OpenAI error " + res.status + ": " + msg };
+    }
+    const choice = body && body.choices && body.choices[0];
+    const text = choice && choice.message && typeof choice.message.content === "string" ? choice.message.content.trim() : "";
+    return { ok: true, text: text || "(OpenAI returned an empty reply.)", model: (body && body.model) || model };
+  }
+
+  function aiHistory(key) {
+    const list = (state.chats[key] || []).slice(-11, -1);
+    return list.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: String(m.text).slice(0, 1500) }));
+  }
+
+  async function aiReply(key, userText) {
+    aiPending[key] = (aiPending[key] || 0) + 1;
+    renderAllChats();
+    let r;
+    try {
+      r = await aiCall(
+        [{ role: "system", content: aiSystemPrompt(key) }].concat(aiHistory(key), [{ role: "user", content: userText }]),
+        500
+      );
+    } catch (e) {
+      r = { ok: false, error: "Something went wrong calling OpenAI. Nothing was changed." };
+    }
+    aiPending[key] = Math.max(0, (aiPending[key] || 1) - 1);
+    if (r.ok) pushChat(key, "agent", r.text, { src: "ai", model: r.model });
+    else pushChat(key, "agent", r.error, { src: "ai-error" });
+    saveChats();
+    renderAllChats();
+    updateAiUI();
+    return r;
+  }
+
+  function aiEngineLabel() {
+    return aiKey() ? "Local first · AI: your key" : ENGINE_LABEL;
+  }
+
+  function updateAiUI() {
+    $$(".engine-label").forEach((el) => (el.textContent = aiEngineLabel()));
+    const foot = $("#cockpitFootnote");
+    if (foot)
+      foot.innerHTML = aiKey()
+        ? "Local commands run first. Anything else goes to OpenAI with your own key (" + escapeHtml(aiModel()) + "), billed to your OpenAI account. Type <strong>help</strong> for commands."
+        : "Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.";
+    const v = aiVerified();
+    const badge = $("#aiConnBadge");
+    if (badge) {
+      badge.textContent = v ? "Connected on this device" : "Not connected";
+      badge.className = "badge " + (v ? "connected" : "notconn");
+    }
+    const detail = $("#aiConnDetail");
+    if (detail)
+      detail.textContent = v
+        ? "Your own key passed a Test call (" + v.model + ", " + new Date(v.at).toLocaleString() + "). Used only for chat replies local commands can't handle."
+        : aiKey()
+          ? "A key is saved but hasn't passed a Test call yet. Run Test in Settings."
+          : "No key saved. Optional: add your own OpenAI key in Settings → AI connection.";
+    const st = $("#aiKeyState");
+    if (st) {
+      const k = aiKey();
+      st.textContent = k ? "Key saved on this device (ends …" + k.slice(-4) + ")" + (v ? " · Test passed" : " · not tested yet") : "No key saved";
+      st.className = "small " + (v ? "ai-ok" : k ? "ai-warn" : "muted");
+    }
+    const rm = $("#btnAiRemove");
+    if (rm) rm.disabled = !aiKey();
+    const tb = $("#btnAiTest");
+    if (tb) tb.disabled = !aiKey();
+  }
+
+  function aiMsg(text, cls) {
+    const el = $("#aiAnswer");
+    if (!el) return;
+    el.style.display = "block";
+    el.className = "answer-panel " + (cls || "");
+    el.textContent = text;
+  }
+
+  function wireAiSettings() {
+    const keyIn = $("#aiKeyInput");
+    const modelIn = $("#aiModelInput");
+    if (!keyIn) return;
+    modelIn.value = aiModel();
+    $("#btnAiSave").addEventListener("click", () => {
+      const k = (keyIn.value || "").trim();
+      const m = (modelIn.value || "").trim() || AI_DEFAULT_MODEL;
+      if (!/^[A-Za-z0-9._\-]{1,80}$/.test(m)) {
+        aiMsg("That model name doesn't look right. Example: gpt-4o-mini", "ai-err");
+        return;
+      }
+      const modelChanged = m !== aiModel();
+      store.set("aiModel", m);
+      if (!k && !aiKey()) {
+        aiMsg("Paste your OpenAI API key first (it starts with “sk-”).", "ai-err");
+        updateAiUI();
+        return;
+      }
+      if (k) {
+        if (/\s/.test(k) || k.length < 20) {
+          aiMsg("That doesn't look like an OpenAI API key. Keys start with “sk-” and have no spaces.", "ai-err");
+          return;
+        }
+        store.set("aiKey", k);
+        aiUnverify();
+        keyIn.value = "";
+      } else if (modelChanged) {
+        aiUnverify();
+      }
+      updateAiUI();
+      aiMsg((k ? "Key saved in this browser on this device only." : "Model saved.") + " Tap Test to confirm it works." + (k && !/^sk-/.test(k) ? " (Heads up: OpenAI keys usually start with “sk-”.)" : ""), "");
+    });
+    $("#btnAiTest").addEventListener("click", async () => {
+      if (!aiKey()) {
+        aiMsg("Save a key first.", "ai-err");
+        return;
+      }
+      const btn = $("#btnAiTest");
+      btn.disabled = true;
+      btn.textContent = "Testing…";
+      aiMsg("Testing with " + aiModel() + "…", "");
+      const r = await aiCall([{ role: "user", content: "Reply with the single word: ready" }], 16);
+      btn.textContent = "Test";
+      if (r.ok) {
+        store.set("aiVerified", { ok: true, model: r.model, at: new Date().toISOString() });
+        aiMsg("Test passed — OpenAI answered using " + r.model + ". AI replies are now on for chats on this device.", "ai-ok");
+      } else {
+        aiUnverify();
+        aiMsg("Test failed. " + r.error, "ai-err");
+      }
+      updateAiUI();
+    });
+    $("#btnAiRemove").addEventListener("click", () => {
+      window.localStorage.removeItem(STORE_PREFIX + "aiKey");
+      window.localStorage.removeItem(STORE_PREFIX + "aiVerified");
+      keyIn.value = "";
+      updateAiUI();
+      aiMsg("Key removed from this device. Chats are back to local commands only.", "");
+    });
+    updateAiUI();
   }
 
   function init() {
@@ -3787,6 +4096,8 @@
     wireInstall();
     mountChat($("#answerPanel"), () => state.activeAgent);
     $("#cockpitClear").addEventListener("click", () => clearChat(state.activeAgent));
+    wireAiSettings();
+    updateAiUI();
     applyLocalNotes();
     showFlash();
     navigate(routeFromHash(), true);

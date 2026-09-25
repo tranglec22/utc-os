@@ -1,8 +1,9 @@
-/* UTC.OS Reconstruction Shell — Phase 5 service worker.
+/* UTC.OS Reconstruction Shell — Phase 6 service worker.
    Cache-first for same-origin shell files only. No background sync,
-   no push, no API calls. Cross-origin requests (e.g. Google Fonts) are
-   passed straight to the network and never cached here. */
-const CACHE = "utcos-shell-v5";
+   no push, no API calls of its own. Cross-origin requests (Google Fonts,
+   and the optional bring-your-own-key calls to api.openai.com) are passed
+   straight to the network and NEVER cached here. */
+const CACHE = "utcos-shell-v6";
 const SHELL = [
   "./",
   "./index.html",
@@ -40,8 +41,9 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
+  if (req.method !== "GET") return; // e.g. OpenAI POSTs: never touched
   const url = new URL(req.url);
+  if (url.hostname === "api.openai.com") return; // never cache AI traffic
   if (url.origin !== self.location.origin) return; // network as normal
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then((hit) => {

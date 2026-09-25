@@ -1395,3 +1395,22 @@ details > summary { padding: 11px 0; }
 .habit-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; }
 .habit-row .habit-actions { margin-top: 0; gap: 10px; }
 .habit-item { padding: 8px 0; }
+
+/* —— Phase 6: bring-your-own-key AI —— */
+.ai-warn-list { margin: 0 0 4px 18px; line-height: 1.5; color: var(--text-muted); }
+.ai-warn-list li { margin-bottom: 4px; }
+.ai-warn-list strong { color: var(--gold-bright); }
+.ai-btn-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ai-ok { color: var(--green); }
+.ai-warn { color: var(--warm); }
+.answer-panel.ai-ok { border-color: rgba(61, 214, 140, 0.45); color: var(--text); }
+.answer-panel.ai-err { border-color: rgba(232, 93, 93, 0.5); color: var(--text); }
+.badge.notconn { color: var(--text-muted); border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.03); }
+.ai-tag { color: var(--blue-cyan); letter-spacing: 0.04em; }
+.ai-tag.err { color: #e88a8a; }
+.chat-msg.ai-error .chat-text { border-color: rgba(232, 93, 93, 0.45); }
+.chat-msg.thinking .chat-text { color: var(--text-muted); font-style: italic; }
+.chat-msg.thinking .dots i { animation: aiDot 1.2s infinite; font-style: normal; }
+.chat-msg.thinking .dots i:nth-child(2) { animation-delay: 0.2s; }
+.chat-msg.thinking .dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiDot { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
