@@ -1,5 +1,5 @@
-/* UTC.OS Reconstruction Shell — Phase 5
-   Evidence-first SPA. No live APIs. No fake Connected OAuth.
+/* UTC.OS Reconstruction Shell — Phase 7
+   Evidence-first SPA. Public-safe memory + verified radar feeds. No fake Connected OAuth.
    Phase 3: localStorage persistence (utcos-shell:*), specialist pages,
    Brain map, Setup checks, lesson views, PWA install wiring.
    Phase 5: habits, goals, lesson progress + notes, and a local command
@@ -540,6 +540,9 @@
     reviewRaw: "",
     reviewSummary: "",
     leadOverrides: {},
+    radarLeads: [],
+    radarGeneratedAt: "",
+    coreMemories: [],
     skillRuns: {},
     memoriesAdded: [],
     knowledgeAdded: [],
@@ -837,16 +840,30 @@
     });
   }
 
+  function applyLeadOverridesTo(list) {
+    (list || []).forEach((l) => {
+      const o = state.leadOverrides[l.id];
+      if (!o || typeof o !== "object") return;
+      if (typeof o.status === "string" && PIPELINE.indexOf(o.status) > 0) l.status = o.status;
+      if (typeof o.note === "string") l.note = o.note || "—";
+    });
+  }
+
+  function allLeads() {
+    const live = Array.isArray(state.radarLeads) ? state.radarLeads : [];
+    return live.concat(FIXTURE_LEADS);
+  }
+
   function renderLeads() {
     const list = $("#leadList");
     list.innerHTML = "";
-    const filtered = FIXTURE_LEADS.filter((l) => {
+    const filtered = allLeads().filter((l) => {
       if (state.pipelineFilter === "All") return true;
       return l.status === state.pipelineFilter;
     });
     if (!filtered.length) {
       list.innerHTML =
-        '<p class="small muted">No fixture leads in this filter.</p>';
+        '<p class="small muted">No leads in this filter.</p>';
       return;
     }
     filtered.forEach((l) => {
@@ -873,7 +890,11 @@
         "</div></div>" +
         '<div class="small muted">' +
         escapeHtml(l.company) +
-        ' · <span class="demo-badge">Demo data</span></div>' +
+        " · " +
+        (l.live
+          ? '<span class="badge connected">Verified public source</span>'
+          : '<span class="demo-badge">Demo data</span>') +
+        "</div>" +
         '<span class="lead-status ' +
         stClass +
         '">' +
@@ -917,7 +938,9 @@
       "</div></div>" +
       '<div class="field-block"><div class="lbl">Suggested response</div><div class="val">—</div></div>' +
       '<div class="field-block"><div class="lbl">Source post</div><div class="val">' +
-      escapeHtml(l.source) +
+      (l.sourceUrl
+        ? '<a href="' + escapeHtml(l.sourceUrl) + '" target="_blank" rel="noopener">' + escapeHtml(l.source) + " ↗</a>"
+        : escapeHtml(l.source)) +
       "</div></div>" +
       '<div class="field-block"><div class="lbl">Radar verification</div><div class="val">' +
       escapeHtml(l.radarNotes) +
@@ -956,7 +979,9 @@
       "</div>" +
       '<p class="small local-note" style="margin-top:10px" id="leadStageNote">' +
       localNoteText() +
-      " · stage + note only · no API · lead itself is fixture data</p>";
+      " · stage + note only · no automatic outreach · " +
+      (l.live ? "lead came from the verified public radar feed" : "lead itself is fixture data") +
+      "</p>";
     $("#leadDialog").classList.add("open");
 
     const sel = $("#leadStageSelect");
@@ -1256,7 +1281,7 @@
   }
 
   function allMemories() {
-    return FIXTURE_MEMORIES.concat(state.memoriesAdded);
+    return FIXTURE_MEMORIES.concat(state.coreMemories, state.memoriesAdded);
   }
 
   function renderMemory() {
@@ -1289,7 +1314,9 @@
         " " +
         (m.local
           ? '<span class="local-badge">This device</span>'
-          : '<span class="demo-badge">Fixture</span>') +
+          : m.core
+            ? '<span class="badge connected">Core memory</span>'
+            : '<span class="demo-badge">Fixture</span>') +
         "</div>" +
         "<h2 style=\"font-size:16px\">" +
         escapeHtml(m.title) +
@@ -1601,12 +1628,89 @@
     });
   }
 
-  function wireLeadCenter() {
-    $("#btnRadar").addEventListener("click", () => {
-      const el = $("#radarAnswer");
-      el.style.display = "block";
+  function radarFeedLabel() {
+    if (!state.radarGeneratedAt) return "Verified feed not loaded yet";
+    const d = new Date(state.radarGeneratedAt);
+    return Number.isNaN(d.getTime())
+      ? "Verified feed loaded"
+      : "Feed generated " + d.toLocaleString();
+  }
+
+  function updateRadarFreshness() {
+    const el = $("#radarFreshness");
+    if (el) {
       el.textContent =
-        "Radar not run. Live walk intentionally skipped Pittsburgh radar because it can upsert data. This shell never calls discovery.";
+        radarFeedLabel() +
+        " · " +
+        state.radarLeads.length +
+        " verified public opportunit" +
+        (state.radarLeads.length === 1 ? "y" : "ies");
+    }
+  }
+
+  async function fetchRadarFeed() {
+    const res = await fetch("data/job-radar.json?v=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("Radar feed returned HTTP " + res.status);
+    const data = await res.json();
+    if (!data || !Array.isArray(data.leads)) throw new Error("Radar feed format is invalid");
+    state.radarLeads = data.leads
+      .filter((l) => l && l.id && l.title && l.sourceUrl)
+      .map((l) => Object.assign({}, l, { live: true }));
+    state.radarGeneratedAt = data.generatedAt || "";
+    applyLeadOverridesTo(state.radarLeads);
+    renderLeads();
+    updateRadarFreshness();
+    return data;
+  }
+
+  async function loadExternalData() {
+    try {
+      const res = await fetch("data/second-brain-public.json", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.items)) {
+          state.coreMemories = data.items
+            .filter((m) => m && m.id && m.title)
+            .map((m) => Object.assign({}, m, { core: true, local: false }));
+        }
+      }
+    } catch (e) {
+      state.coreMemories = [];
+    }
+    try {
+      await fetchRadarFeed();
+    } catch (e) {
+      state.radarLeads = [];
+      state.radarGeneratedAt = "";
+      updateRadarFreshness();
+    }
+  }
+
+  function wireLeadCenter() {
+    $("#btnRadar").addEventListener("click", async () => {
+      const el = $("#radarAnswer");
+      const btn = $("#btnRadar");
+      el.style.display = "block";
+      btn.disabled = true;
+      const old = btn.textContent;
+      btn.textContent = "Refreshing…";
+      el.textContent = "Refreshing the verified public opportunity feed…";
+      try {
+        await fetchRadarFeed();
+        el.textContent =
+          "Radar refreshed: " +
+          state.radarLeads.length +
+          " verified public opportunities loaded. " +
+          radarFeedLabel() +
+          ". Source links stay attached; no outreach was sent.";
+      } catch (e) {
+        el.textContent =
+          "Radar feed could not refresh. The existing local view was left intact. " +
+          (e && e.message ? e.message : "Unknown error.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = old;
+      }
     });
     $("#btnImport").addEventListener("click", () => {
       const el = $("#radarAnswer");
@@ -4060,8 +4164,9 @@
     updateAiUI();
   }
 
-  function init() {
+  async function init() {
     loadPersisted();
+    await loadExternalData();
     applyWorldUI();
     $("#btnActiveAgent").textContent = AGENTS[state.activeAgent].initial;
     $("#systemStatusLine").textContent =
