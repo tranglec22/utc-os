@@ -1,0 +1,197 @@
+{
+  "format": "utcos-public-core-memory",
+  "version": 1,
+  "generatedAt": "2026-09-25T21:00:00-04:00",
+  "note": "Public-safe operating context only. Sensitive personal memory stays in the private Notion master-memory page and must never be committed here.",
+  "items": [
+    {
+      "id": "core-identity-1",
+      "title": "Primary operating lanes",
+      "detail": "Code/Cody works across UP2CODE painting & contracting, Lil Wiz-Nap music/visual art, and UTC.OS/AI workflow development around Pittsburgh and Western Pennsylvania.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-workflow-1",
+      "title": "Phone-first workflow",
+      "detail": "Treat Android, mobile browser, PWA and DeX as primary surfaces. Do not design UTC.OS as a desktop-only dashboard.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-workflow-2",
+      "title": "Execution preference",
+      "detail": "Prefer practical copy-ready outputs, few unnecessary questions, clear assumptions, verified completion states, batched tool use and reuse of prior results.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-up2code-1",
+      "title": "UP2CODE identity",
+      "detail": "UP2CODE / Up 2 C.O.D. Painting & Contracting. C = Creation, O = Organization, D = Dedication. Tagline: We Don’t Just Paint — We Elevate.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-up2code-2",
+      "title": "UP2CODE core services",
+      "detail": "Painting and finish work across residential/commercial, interior/exterior, drywall/plaster/texture repair, refinishing/staining/epoxy/poly, specialty finishes, wood repair and related finish carpentry.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-up2code-3",
+      "title": "UP2CODE brand system",
+      "detail": "Premium obsidian/deep-violet base with electric purple/blue energy, antique or burnished gold, metallic materials and selective Pittsburgh references.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-radar-1",
+      "title": "Job Radar purpose",
+      "detail": "Discover real Pittsburgh-area painting, drywall/plaster, finish, maintenance, subcontractor and public-bid opportunities and route qualified records into Lead Center.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-radar-2",
+      "title": "Job Radar evidence rule",
+      "detail": "Every opportunity must retain its public source URL/source ID. Never invent contacts, budgets, credentials or project details.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-radar-3",
+      "title": "Job Radar workflow",
+      "detail": "Discover → qualify → prepare contact → owner approval → contact → estimate → won/lost. Drafting is allowed; external outreach remains approval-gated.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-radar-4",
+      "title": "Job Radar source mix",
+      "detail": "Use public procurement/bid portals, subcontractor networks, job boards, classifieds and other public postings; dedupe primarily by source URL/source ID.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-lwn-1",
+      "title": "Lil Wiz-Nap identity",
+      "detail": "Lil Wiz-Nap is the music/visual artist identity; Sauce Sensei is the creative-director persona. Preserve bold, premium, modern, mysterious, high-tech visual language.",
+      "bucket": "linked",
+      "workspace": "Music",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-lwn-2",
+      "title": "Lil Wiz-Nap visual marks",
+      "detail": "Recurring visual system includes LWN monogram/crown, purple lightning/electricity, cassette/headphone references, dark tactical streetwear, gold accents and selective Egyptian symbolism.",
+      "bucket": "linked",
+      "workspace": "Creative",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-lwn-3",
+      "title": "Suno formatting",
+      "detail": "When requested for Lil Wiz-Nap, production notes belong inside [brackets] in the lyrics; keep lyrics/style prompts within the requested character limits and make them easy to copy.",
+      "bucket": "linked",
+      "workspace": "Music",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-utcos-1",
+      "title": "UTC.OS is canonical command center",
+      "detail": "UTC.OS combines business, creative, planning, projects, agents, knowledge, Lead Center/Job Radar, automation and development. Preserve existing modules/data rather than creating duplicates.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-utcos-2",
+      "title": "Canonical app warning",
+      "detail": "utc-os-app is the canonical private app. The public tranglec22/utc-os repository is a reconstruction/integration shell and must not become a store for sensitive personal memory.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-utcos-3",
+      "title": "UTC.OS visual system",
+      "detail": "Luxury cyber-mystic OS: obsidian, violet, electric blue, antique gold, smoked glass, ancient-artifact cues, premium architecture and cinematic lighting. Avoid generic SaaS styling.",
+      "bucket": "linked",
+      "workspace": "Creative",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-utcos-4",
+      "title": "Capability truth labels",
+      "detail": "Distinguish local, connected, drafted, completed, fixture/demo and not connected. Do not use fake connection/completion states.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-agent-1",
+      "title": "Core agent team",
+      "detail": "Margaret = executive strategy; Kara = chief of staff/daily co-pilot; Jarvis = system core/technical execution; Sauce Sensei = creative direction. Bastion is the permission/truth gate.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-memory-1",
+      "title": "Second Brain storage rule",
+      "detail": "Store durable facts, preferences, decisions, project states, sources, deadlines, relationships and meaningful changes rather than raw chat transcripts.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-memory-2",
+      "title": "Second Brain privacy rule",
+      "detail": "Sensitive personal/admin context belongs in private storage. Public code receives only public-safe operating rules, project context and brand/workflow memory.",
+      "bucket": "linked",
+      "workspace": "All work",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    },
+    {
+      "id": "core-forge-1",
+      "title": "Forge validation rule",
+      "detail": "Validate demand before inventory/spend, do not fabricate supplier/manufacturing facts, preserve decisions/versioning and bridge concept through sourcing/production/commercialization.",
+      "bucket": "linked",
+      "workspace": "Business",
+      "source": "ChatGPT memory synthesis",
+      "core": true
+    }
+  ]
+}
