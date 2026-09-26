@@ -1,4 +1,14 @@
-# UTC.OS Reconstruction Shell — Phase 6
+# UTC.OS Reconstruction Shell — Phase 7
+
+## Phase 7: Second Brain + Job Radar bridge
+
+- `data/second-brain-public.json` supplies **public-safe** core operating memory to the Memory view. Sensitive personal/admin memory is deliberately excluded from this public repository and lives in the private Second Brain source instead.
+- `data/job-radar.json` supplies source-linked Pittsburgh opportunities to Lead Center / Job Radar. The UI now refreshes this feed instead of showing only a dead discovery stub.
+- `scripts/job-radar.mjs` can refresh the feed with **Grok 4.7 + web_search + x_search** through xAI's Responses API.
+- `.github/workflows/job-radar.yml` runs every six hours and on manual dispatch. Add the repository secret `XAI_API_KEY` to activate automated Grok refresh. If the secret is missing, the workflow exits safely and preserves the verified seed feed.
+- The service worker never caches `data/job-radar.json`, so a refresh checks the newest committed feed.
+- Discovery is not outreach. Source URLs stay attached and the shell does not automatically contact leads.
+
 
 **This is a reconstruction shell — not the live utc-os-app.**
 
