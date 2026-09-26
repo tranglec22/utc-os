@@ -466,11 +466,12 @@
         <div class="card glow">
           <div class="section-label">Live Lead Discovery</div>
           <h2>Job Radar</h2>
-          <p class="small muted" style="margin:6px 0 12px">Ready to search public sources around Pittsburgh.</p>
-          <button type="button" class="btn btn-gold btn-block" id="btnRadar" title="Not run — reconstruction shell">Run Pittsburgh radar</button>
+          <p class="small muted" style="margin:6px 0 6px">Loads a source-linked Pittsburgh opportunity feed built from public bids, subcontractor networks, job boards and other verified public posts.</p>
+          <p class="small dim" id="radarFreshness" style="margin:0 0 12px">Verified feed not loaded yet</p>
+          <button type="button" class="btn btn-gold btn-block" id="btnRadar">Refresh Pittsburgh radar</button>
           <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" id="btnImport">Import JSON or CSV</button>
           <p class="small dim" style="margin-top:10px">Every live-search result must match a source returned by the search engine. Duplicate URLs and source IDs refresh the existing record.</p>
-          <p class="safety-note">This shell does <strong>not</strong> run radar or upsert. Button shows an honest stub message only.</p>
+          <p class="safety-note">Radar discovery is separated from outreach. A source URL is required for every live record; status/notes stay local here and nothing is contacted automatically.</p>
           <div class="answer-panel" id="radarAnswer" style="display:none;margin-top:8px"></div>
         </div>
 
@@ -617,7 +618,7 @@
             <span class="conn-name">Lead Radar</span>
             <span class="badge connected">Connected</span>
           </div>
-          <p class="small muted">Protected upsert with duplicate protection. Opens into Lead Center / Job Radar.</p>
+          <p class="small muted">Verified public feed with source URLs and local duplicate-safe status/notes. Scheduled Grok web + X refresh is available when the repository secret is configured.</p>
           <button type="button" class="btn btn-outline" style="margin-top:10px" data-nav="lead-center">Open Lead Center</button>
         </div>
 
@@ -808,8 +809,8 @@
         <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
         <div class="section-label">Second Brain</div>
         <h1 style="font-size:22px">Memory</h1>
-        <p class="muted small" style="margin-bottom:6px">3 fixture memories from [22] + anything you capture here.</p>
-        <p class="small local-note" style="margin-bottom:14px">Saved on this device only</p>
+        <p class="muted small" style="margin-bottom:6px">Public-safe core memory + reconstruction fixtures + anything you capture here. Sensitive master memory stays in the private Second Brain store, never in this public repo.</p>
+        <p class="small local-note" style="margin-bottom:14px">Local captures stay on this device</p>
 
         <div class="stat-row">
           <div><div class="num" id="memCountInbox">1</div><div class="lbl">Inbox</div></div>
