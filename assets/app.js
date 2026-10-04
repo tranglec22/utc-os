@@ -1947,7 +1947,7 @@
         renderMemory();
       });
     });
-    $("#btnSaveMemory").addEventListener("click", () => {
+    $("#btnSaveMemory").addEventListener("click", async () => {
       const el = $("#memoryAnswer");
       el.style.display = "block";
       const title = ($("#memIdea").value || "").trim();
@@ -1955,12 +1955,36 @@
         el.textContent = "Add an idea first.";
         return;
       }
+      const detail = ($("#memDetail").value || "").trim();
+      const workspace = $("#memWorkspace").value;
+      if (coreVerified()) {
+        el.textContent = "Saving to shared Second Brain…";
+        const remote = await coreCall("POST", "/v1/memory/remember", {
+          title: title,
+          detail: detail || title,
+          bucket: "inbox",
+          workspace: workspace,
+          source: "utc-os-mothership",
+          sensitivity: "private",
+          confidence: 1,
+          createdBy: state.activeAgent || "user"
+        });
+        if (remote.ok && remote.data && remote.data.memory) {
+          state.coreMemories.unshift(Object.assign({}, remote.data.memory, { core: true, local: false }));
+          $("#memIdea").value = "";
+          $("#memDetail").value = "";
+          renderMemory();
+          el.textContent = "Memory saved to the shared Second Brain.";
+          return;
+        }
+        el.textContent = "Shared Brain save failed (" + remote.error + "). Saving a local fallback copy instead.";
+      }
       state.memoriesAdded.push({
         id: "lm" + Date.now(),
         title: title,
-        detail: ($("#memDetail").value || "").trim(),
+        detail: detail,
         bucket: "inbox",
-        workspace: $("#memWorkspace").value,
+        workspace: workspace,
         local: true,
         at: new Date().toISOString(),
       });
