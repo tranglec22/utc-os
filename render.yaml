@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: utcos-agent-core
+    runtime: docker
+    plan: free
+    repo: https://github.com/tranglec22/utc-os
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    dockerCommand: /bin/sh -c "npm run db:init && npm start"
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: utcos-second-brain
+          property: connectionString
+      - key: PGSSL
+        value: require
+      - key: UTCOS_AGENT_CORE_KEY
+        generateValue: true
+      - key: UTCOS_VAULT_KEY
+        generateValue: true
+      - key: UTCOS_ALLOWED_ORIGINS
+        value: https://tranglec22.github.io,https://utc-os-app.tranglec.chatgpt.site
+
+databases:
+  - name: utcos-second-brain
+    plan: free
