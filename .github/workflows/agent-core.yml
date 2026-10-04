@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "server/**"
+      - "assets/app.js"
+      - "index.html"
+      - "sw.js"
       - ".github/workflows/agent-core.yml"
   workflow_dispatch:
 
@@ -42,6 +45,9 @@ jobs:
           cache-dependency-path: server/package.json
       - run: npm install --package-lock=false
       - run: npm run check
+      - name: Check Mothership browser JavaScript
+        working-directory: .
+        run: node --check assets/app.js
       - run: npm run db:init
       - name: REST + encrypted vault smoke test
         shell: bash
@@ -54,7 +60,11 @@ jobs:
             curl -fsS http://127.0.0.1:8787/health >/dev/null && break
             sleep 1
           done
-          curl -fsS http://127.0.0.1:8787/v1/agents             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" >/dev/null
+          HEADERS=$(mktemp)
+          curl -fsS -D "$HEADERS" http://127.0.0.1:8787/v1/agents \
+            -H "Origin: https://tranglec22.github.io" \
+            -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" >/dev/null
+          grep -qi "access-control-allow-origin: https://tranglec22.github.io" "$HEADERS"
           BODY=$(curl -fsS -X POST http://127.0.0.1:8787/v1/vault             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY"             -H "Content-Type: application/json"             -d '{"title":"CI vault item","plaintext":"ci-secret-value","workspace":"UTC.OS"}')
           ID=$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.entry.id)' "$BODY")
           curl -fsS http://127.0.0.1:8787/v1/vault             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" | grep -q "CI vault item"
