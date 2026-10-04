@@ -721,6 +721,31 @@
           <div id="triggerList"></div>
         </div>
 
+        <div class="card ai-card" id="coreCard">
+          <h2>Agent Core + Second Brain</h2>
+          <p class="small muted" style="margin:4px 0 8px">Connect this Mothership to the same private Agent Core used by Echo Trace and ChatGPT/MCP. Once verified, private memory can sync across surfaces instead of living only in this browser.</p>
+          <ul class="ai-warn-list small">
+            <li>The access key is saved on <strong>this browser/device only</strong> and is excluded from Export backups.</li>
+            <li>Use only an <strong>HTTPS</strong> Agent Core URL outside local development.</li>
+            <li>The encrypted Safety Vault remains separate from ordinary memory search.</li>
+          </ul>
+          <p class="small muted" id="coreKeyState" style="margin:10px 0 6px">Not configured</p>
+          <div class="form-group">
+            <label for="coreUrlInput">Agent Core URL</label>
+            <input type="url" id="coreUrlInput" placeholder="https://your-agent-core.example" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          </div>
+          <div class="form-group">
+            <label for="coreKeyInput">Agent Core access key</label>
+            <input type="password" id="coreKeyInput" placeholder="Private bearer key" autocomplete="off" autocapitalize="off" spellcheck="false" />
+          </div>
+          <div class="ai-btn-row">
+            <button type="button" class="btn btn-gold" id="btnCoreSave">Save</button>
+            <button type="button" class="btn btn-outline" id="btnCoreTest" disabled>Test</button>
+            <button type="button" class="btn btn-ghost" id="btnCoreRemove" disabled>Remove</button>
+          </div>
+          <div class="answer-panel" id="coreAnswer" style="display:none" role="status"></div>
+        </div>
+
         <div class="card ai-card" id="aiCard">
           <h2>AI connection (bring your own key)</h2>
           <p class="small muted" style="margin:4px 0 8px">Optional. With your own OpenAI API key, agent chats answer anything local commands can't handle. Local commands always run first and never use AI.</p>
