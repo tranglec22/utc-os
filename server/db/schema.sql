@@ -72,3 +72,38 @@ CREATE TABLE IF NOT EXISTS vault_entries (
 );
 
 CREATE INDEX IF NOT EXISTS vault_entries_workspace_idx ON vault_entries(workspace) WHERE deleted_at IS NULL;
+
+
+CREATE TABLE IF NOT EXISTS oauth_clients (
+  client_id TEXT PRIMARY KEY,
+  client_name TEXT,
+  redirect_uris JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS oauth_codes (
+  code_hash TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+  redirect_uri TEXT NOT NULL,
+  code_challenge TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  resource TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS oauth_tokens (
+  token_hash TEXT PRIMARY KEY,
+  token_type TEXT NOT NULL CHECK (token_type IN ('access','refresh')),
+  client_id TEXT NOT NULL REFERENCES oauth_clients(client_id) ON DELETE CASCADE,
+  scope TEXT NOT NULL,
+  resource TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked BOOLEAN NOT NULL DEFAULT false,
+  family_id UUID NOT NULL DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS oauth_codes_expiry_idx ON oauth_codes(expires_at);
+CREATE INDEX IF NOT EXISTS oauth_tokens_lookup_idx ON oauth_tokens(token_hash, token_type, revoked, expires_at);
