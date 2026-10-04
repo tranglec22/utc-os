@@ -2228,7 +2228,7 @@
       const keys = {};
       // Phase 6: the OpenAI key (and its test status) never leave this device.
       store.keys().forEach((k) => {
-        if (AI_PRIVATE_KEYS.indexOf(k) >= 0) return;
+        if (DEVICE_PRIVATE_KEYS.indexOf(k) >= 0) return;
         keys[k] = window.localStorage.getItem(k);
       });
       const payload = {
@@ -2294,7 +2294,7 @@
         }
         const entries = Object.keys(payload.keys).filter((k) => {
           if (k.indexOf(STORE_PREFIX) !== 0) return false;
-          if (AI_PRIVATE_KEYS.indexOf(k) >= 0) return false;
+          if (DEVICE_PRIVATE_KEYS.indexOf(k) >= 0) return false;
           const v = payload.keys[k];
           if (typeof v !== "string") return false;
           try {
@@ -2320,7 +2320,7 @@
           return;
         }
         // Keep this device's own OpenAI key (never part of a backup).
-        const keepAi = AI_PRIVATE_KEYS.map((k) => [k, window.localStorage.getItem(k)]);
+        const keepAi = DEVICE_PRIVATE_KEYS.map((k) => [k, window.localStorage.getItem(k)]);
         store.clearAll();
         keepAi.forEach(([k, v]) => {
           if (v != null) window.localStorage.setItem(k, v);
@@ -4059,6 +4059,141 @@
   const AI_PRIVATE_KEYS = [STORE_PREFIX + "aiKey", STORE_PREFIX + "aiVerified"];
   const aiPending = {};
 
+  const CORE_PRIVATE_KEYS = [STORE_PREFIX + "coreKey", STORE_PREFIX + "coreVerified"];
+  const DEVICE_PRIVATE_KEYS = AI_PRIVATE_KEYS.concat(CORE_PRIVATE_KEYS);
+
+  function coreUrl() {
+    const v = store.get("coreUrl", "");
+    return typeof v === "string" ? v.replace(/\/+$/, "") : "";
+  }
+  function coreKey() {
+    const v = store.get("coreKey", "");
+    return typeof v === "string" ? v : "";
+  }
+  function coreVerified() {
+    const v = store.get("coreVerified", null);
+    return coreUrl() && coreKey() && isObj(v) && v.ok ? v : null;
+  }
+  function coreUnverify() {
+    try { window.localStorage.removeItem(STORE_PREFIX + "coreVerified"); } catch (e) {}
+  }
+  async function coreCall(method, path, body) {
+    const url = coreUrl();
+    const key = coreKey();
+    if (!url || !key) return { ok: false, error: "Agent Core is not configured.", status: 0 };
+    if (!/^https:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url)) {
+      return { ok: false, error: "Agent Core URL must use HTTPS outside local development.", status: 0 };
+    }
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 20000) : null;
+    try {
+      const res = await fetch(url + path, {
+        method,
+        headers: {
+          "Authorization": "Bearer " + key,
+          "Accept": "application/json",
+          ...(body ? { "Content-Type": "application/json" } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: ctrl ? ctrl.signal : undefined,
+        cache: "no-store",
+        credentials: "omit",
+        referrerPolicy: "no-referrer"
+      });
+      if (timer) clearTimeout(timer);
+      let data = null;
+      try { data = await res.json(); } catch (e) {}
+      if (res.status === 401) coreUnverify();
+      if (!res.ok) return { ok: false, status: res.status, error: (data && data.error) ? String(data.error) : "Agent Core returned HTTP " + res.status };
+      return { ok: true, status: res.status, data };
+    } catch (e) {
+      if (timer) clearTimeout(timer);
+      return { ok: false, status: 0, error: e && e.name === "AbortError" ? "Agent Core request timed out." : "Could not reach Agent Core." };
+    }
+  }
+  function coreMsg(text, cls) {
+    const el = $("#coreAnswer");
+    if (!el) return;
+    el.style.display = "block";
+    el.className = "answer-panel " + (cls || "");
+    el.textContent = text;
+  }
+  function updateCoreUI() {
+    const v = coreVerified();
+    const badge = $("#coreConnBadge");
+    if (badge) {
+      badge.textContent = v ? "Connected" : coreKey() && coreUrl() ? "Saved · not verified" : "Deployment pending";
+      badge.className = "badge " + (v ? "connected" : "notconn");
+    }
+    const st = $("#coreKeyState");
+    if (st) {
+      st.textContent = v
+        ? "Verified " + new Date(v.at).toLocaleString() + " · " + coreUrl()
+        : coreKey() && coreUrl()
+          ? "Connection saved on this device · Test required"
+          : "Not configured";
+      st.className = "small " + (v ? "ai-ok" : coreKey() ? "ai-warn" : "muted");
+    }
+    const urlIn = $("#coreUrlInput");
+    if (urlIn && document.activeElement !== urlIn) urlIn.value = coreUrl();
+    const test = $("#btnCoreTest"), remove = $("#btnCoreRemove");
+    if (test) test.disabled = !(coreUrl() && coreKey());
+    if (remove) remove.disabled = !(coreUrl() || coreKey());
+  }
+  function wireCoreSettings() {
+    const urlIn = $("#coreUrlInput"), keyIn = $("#coreKeyInput");
+    if (!urlIn || !keyIn) return;
+    urlIn.value = coreUrl();
+    $("#btnCoreSave").addEventListener("click", () => {
+      const u = (urlIn.value || "").trim().replace(/\/+$/, "");
+      const k = (keyIn.value || "").trim();
+      if (!u || (!k && !coreKey())) { coreMsg("Agent Core URL and access key are required.", "ai-err"); return; }
+      if (!/^https:\/\//i.test(u) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(u)) {
+        coreMsg("Use an HTTPS Agent Core URL outside local development.", "ai-err"); return;
+      }
+      store.set("coreUrl", u);
+      if (k) store.set("coreKey", k);
+      coreUnverify();
+      keyIn.value = "";
+      updateCoreUI();
+      coreMsg("Connection saved on this device. Tap Test to verify the URL and key.", "");
+    });
+    $("#btnCoreTest").addEventListener("click", async () => {
+      const btn = $("#btnCoreTest");
+      btn.disabled = true; btn.textContent = "Testing…";
+      const r = await coreCall("GET", "/v1/agents");
+      btn.textContent = "Test";
+      if (r.ok) {
+        store.set("coreVerified", { ok: true, at: new Date().toISOString() });
+        coreMsg("Agent Core verified. This Mothership can use the shared Second Brain.", "ai-ok");
+      } else {
+        coreUnverify();
+        coreMsg("Agent Core test failed: " + r.error, "ai-err");
+      }
+      updateCoreUI();
+    });
+    $("#btnCoreRemove").addEventListener("click", () => {
+      ["coreUrl","coreKey","coreVerified"].forEach((k) => {
+        try { window.localStorage.removeItem(STORE_PREFIX + k); } catch (e) {}
+      });
+      urlIn.value = ""; keyIn.value = "";
+      updateCoreUI();
+      coreMsg("Agent Core connection removed from this device.", "");
+    });
+    updateCoreUI();
+  }
+
+  async function sharedBrainContext(agentId) {
+    if (!coreVerified()) return "";
+    const r = await coreCall("POST", "/v1/context", {
+      agentId: agentId,
+      workspace: state.world === "lilwiznap" ? "Music" : "All work"
+    });
+    if (!r.ok || !r.data || !Array.isArray(r.data.memories)) return "";
+    const lines = r.data.memories.slice(0, 20).map((m) => "• " + m.title + ": " + m.detail);
+    return lines.length ? "\n\nShared Second Brain context:\n" + lines.join("\n") : "";
+  }
+
   function aiKey() {
     const k = store.get("aiKey", "");
     return typeof k === "string" ? k : "";
@@ -4203,7 +4338,7 @@
     let r;
     try {
       r = await aiCall(
-        [{ role: "system", content: aiSystemPrompt(key) }].concat(aiHistory(key), [{ role: "user", content: userText }]),
+        [{ role: "system", content: aiSystemPrompt(key) + await sharedBrainContext(key) }].concat(aiHistory(key), [{ role: "user", content: userText }]),
         500
       );
     } catch (e) {
@@ -4363,7 +4498,9 @@
     wireDock();
     mountChat($("#answerPanel"), () => state.activeAgent);
     $("#cockpitClear").addEventListener("click", () => clearChat(state.activeAgent));
+    wireCoreSettings();
     wireAiSettings();
+    updateCoreUI();
     updateAiUI();
     applyLocalNotes();
     showFlash();
