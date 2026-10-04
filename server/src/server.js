@@ -5,6 +5,7 @@ import { reviewIngestion } from "./bastion.js";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createAgentCoreMcpHandler } from "./mcp.js";
 import { vaultConfigured, storeVaultEntry, readVaultEntry } from "./vault.js";
+import { assertNormalMemorySensitivity } from "./memory-policy.js";
 
 const { Pool } = pg;
 const app = express();
@@ -66,13 +67,16 @@ app.post("/v1/memory/remember", requireKey, async (req, res) => {
     createdBy = "user"
   } = req.body || {};
   if (!title || !detail) return res.status(400).json({ error: "title and detail are required" });
+  let safeSensitivity;
+  try { safeSensitivity = assertNormalMemorySensitivity(sensitivity); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
 
   const q = await pool.query(
     `INSERT INTO memories
       (title, detail, bucket, workspace, source, sensitivity, confidence, created_by)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
      RETURNING *`,
-    [title, detail, bucket, workspace, source, sensitivity, confidence, createdBy]
+    [title, detail, bucket, workspace, source, safeSensitivity, confidence, createdBy]
   );
   const memory = q.rows[0];
   await pool.query(
@@ -113,6 +117,10 @@ app.patch("/v1/memory/:id", requireKey, async (req, res) => {
   if (!current.rowCount) return res.status(404).json({ error: "memory not found" });
 
   const allowed = ["title","detail","bucket","workspace","source","sensitivity","confidence","status"];
+  if (req.body?.sensitivity !== undefined) {
+    try { assertNormalMemorySensitivity(req.body.sensitivity); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
+  }
   const next = { ...current.rows[0] };
   for (const key of allowed) if (req.body?.[key] !== undefined) next[key] = req.body[key];
 
