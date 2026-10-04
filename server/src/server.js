@@ -1,6 +1,7 @@
 import express from "express";
 import pg from "pg";
 import { AGENTS, routeAgent } from "./agents.js";
+import { reviewIngestion } from "./bastion.js";
 
 const { Pool } = pg;
 const app = express();
@@ -155,22 +156,128 @@ app.post("/v1/ingest", requireKey, async (req, res) => {
   res.status(202).json({ item: q.rows[0] });
 });
 
+async function promoteIngestion(client, item, review, changedBy = "bastion") {
+  const c = review.candidate;
+  const created = await client.query(
+    `INSERT INTO memories
+      (title, detail, bucket, workspace, source, sensitivity, confidence, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     RETURNING *`,
+    [c.title, c.detail, c.bucket, c.workspace, c.source, c.sensitivity, c.confidence, c.createdBy || changedBy]
+  );
+  const memory = created.rows[0];
+  await client.query(
+    `INSERT INTO memory_versions(memory_id, version_no, snapshot, changed_by, reason)
+     VALUES ($1,1,$2::jsonb,$3,'promoted from ingestion')`,
+    [memory.id, JSON.stringify(memory), changedBy]
+  );
+  await client.query(
+    `UPDATE ingestion_inbox
+     SET status='processed', bastion_state='approved', processed_at=now(), notes=$2
+     WHERE id=$1`,
+    [item.id, review.reason]
+  );
+  return memory;
+}
+
+app.post("/v1/ingest/:id/review", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  const decision = String(req.body?.decision || "").toLowerCase();
+  if (!["approved","flagged","rejected"].includes(decision)) {
+    return res.status(400).json({ error: "decision must be approved, flagged, or rejected" });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const found = await client.query("SELECT * FROM ingestion_inbox WHERE id=$1 FOR UPDATE", [req.params.id]);
+    if (!found.rowCount) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "ingestion item not found" });
+    }
+    const item = found.rows[0];
+
+    if (decision === "rejected") {
+      await client.query(
+        `UPDATE ingestion_inbox
+         SET status='rejected', bastion_state='rejected', processed_at=now(), notes=$2
+         WHERE id=$1`,
+        [item.id, req.body?.reason || "Rejected during manual review"]
+      );
+      await client.query("COMMIT");
+      return res.json({ id: item.id, state: "rejected" });
+    }
+
+    if (decision === "flagged") {
+      await client.query(
+        `UPDATE ingestion_inbox
+         SET bastion_state='flagged', notes=$2
+         WHERE id=$1`,
+        [item.id, req.body?.reason || "Flagged during manual review"]
+      );
+      await client.query("COMMIT");
+      return res.json({ id: item.id, state: "flagged" });
+    }
+
+    const review = reviewIngestion(item);
+    if (!review.candidate) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: "item has no promotable structured memory candidate" });
+    }
+    review.state = "approved";
+    review.reason = req.body?.reason || "Approved during manual Bastion review";
+    const memory = await promoteIngestion(client, item, review, req.body?.changedBy || "bastion");
+    await client.query("COMMIT");
+    res.json({ id: item.id, state: "approved", memory });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    res.status(500).json({ error: "review failed", detail: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 app.post("/v1/rollup/daily", requireKey, async (_req, res) => {
   if (!requireDb(res)) return;
   const pending = await pool.query(
     `SELECT * FROM ingestion_inbox
-     WHERE status='pending'
+     WHERE status='pending' AND bastion_state='unreviewed'
      ORDER BY received_at ASC
      LIMIT 200`
   );
-  // Deliberately conservative first pass: queue discovery is real, but no model is allowed
-  // to silently promote raw intake into durable memory yet. Bastion review comes first.
+
+  const result = { queued: pending.rowCount, promoted: [], flagged: [] };
+
+  for (const item of pending.rows) {
+    const review = reviewIngestion(item);
+    if (review.state !== "approved") {
+      await pool.query(
+        `UPDATE ingestion_inbox
+         SET bastion_state='flagged', notes=$2
+         WHERE id=$1`,
+        [item.id, review.reason]
+      );
+      result.flagged.push({ id: item.id, reason: review.reason });
+      continue;
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const memory = await promoteIngestion(client, item, review, "bastion-daily");
+      await client.query("COMMIT");
+      result.promoted.push({ ingestionId: item.id, memoryId: memory.id, title: memory.title });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      result.flagged.push({ id: item.id, reason: "Promotion failed: " + error.message });
+    } finally {
+      client.release();
+    }
+  }
+
   res.json({
-    queued: pending.rowCount,
-    state: "awaiting-bastion-review",
-    items: pending.rows.map(({ id, source_type, source_ref, received_at }) => ({
-      id, sourceType: source_type, sourceRef: source_ref, receivedAt: received_at
-    }))
+    ...result,
+    state: result.flagged.length ? "review-needed" : "complete"
   });
 });
 
