@@ -85,6 +85,23 @@
       hint: "What should we design, refine, or review?",
       online: "Sauce Sensei online.",
     },
+    bastion: {
+      id: "bastion",
+      name: "Bastion",
+      initial: "B",
+      role: "Security / Privacy / Truth-State / Verification",
+      teamTitle: "Security + Verification Gate",
+      tagline: "Trust requires proof.",
+      statusReady: "READY PROFILE",
+      prompts: [
+        "Check this for risk",
+        "What is actually connected?",
+        "Verify this claim",
+        "Review my security",
+      ],
+      hint: "What should we verify, protect, or refuse to fake?",
+      online: "Bastion online.",
+    },
   };
 
   /** Specialists from live Team walk [21] — fixture roles */
@@ -556,6 +573,7 @@
     goals: [],
     chats: {},
     lessons: {},
+    dockAgent: "auto",
   };
 
   const $ = (sel, root) => (root || document).querySelector(sel);
@@ -725,6 +743,11 @@
       AGENTS[id].name + " READY · Local shell";
     if (opts.toast) showToast(AGENTS[id].name + " is now the active intelligence.");
     renderTeam();
+    if (state.dockAgent !== "auto" && AGENTS[id]) {
+      state.dockAgent = id;
+      store.set("dockAgent", id);
+      renderDockAgents();
+    }
   }
 
   function renderCockpit() {
@@ -785,6 +808,140 @@
       const input = $("#cockpitInput");
       if (input) input.focus();
     }, 80);
+  }
+
+  function autoRouteAgent(text) {
+    const q = String(text || "").toLowerCase();
+    const has = (...words) => words.some((w) => q.indexOf(w) >= 0);
+
+    if (has("security","secure","privacy","permission","backup","vault","verify","verified","risk","safe","connected","connection","truth")) return "bastion";
+    if (has("code","bug","technical","tech","api","database","server","deploy","build","apk","android","github","repo","workflow","automation","website","system","mcp")) return "jarvis";
+    if (has("design","aesthetic","look","visual","color","colour","logo","art","cover","image","music","song","track","video","creative","style")) return "sauce";
+    if (has("strategy","business","money","revenue","priority","decision","client","estimate","lead","company","up2code","executive")) return "margaret";
+    if (has("task","today","tomorrow","schedule","appointment","remind","life","errand","plan","todo","to-do","organize","organise","home","personal")) return "kara";
+    return "kara";
+  }
+
+  function dockTarget(text) {
+    return state.dockAgent === "auto" ? autoRouteAgent(text) : state.dockAgent;
+  }
+
+  function renderDockAgents() {
+    const wrap = $("#dockAgents");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    const options = [{ id: "auto", name: "Auto" }].concat(
+      ["margaret","kara","jarvis","sauce","bastion"].map((id) => ({ id, name: AGENTS[id].name }))
+    );
+    options.forEach((item) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "dock-agent" + (item.id === "auto" ? " auto" : "") + (state.dockAgent === item.id ? " active" : "");
+      b.textContent = item.name;
+      b.dataset.dockAgent = item.id;
+      b.addEventListener("click", () => {
+        state.dockAgent = item.id;
+        store.set("dockAgent", item.id);
+        if (AGENTS[item.id]) {
+          state.activeAgent = item.id;
+          store.set("activeAgent", item.id);
+          renderAgents();
+          renderCockpit();
+          $("#btnActiveAgent").textContent = AGENTS[item.id].initial;
+        }
+        renderDockAgents();
+        updateDockLabel();
+        $("#dockInput").focus();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  function updateDockLabel(lastTarget) {
+    const title = $("#dockTitle");
+    const label = $("#dockRouteLabel");
+    if (!title || !label) return;
+    if (state.dockAgent === "auto") {
+      title.textContent = "Auto-route to the right agent";
+      label.textContent = lastTarget && AGENTS[lastTarget]
+        ? "AUTO → " + AGENTS[lastTarget].name + " · routed from what you typed"
+        : "AUTO · Kara catches anything that does not clearly belong elsewhere";
+    } else {
+      title.textContent = "Talk directly to " + AGENTS[state.dockAgent].name;
+      label.textContent = AGENTS[state.dockAgent].role;
+    }
+  }
+
+  function sendDock() {
+    const input = $("#dockInput");
+    if (!input) return;
+    const q = (input.value || "").trim();
+    if (!q) {
+      showToast("Type something into Mothership Command.");
+      input.focus();
+      return;
+    }
+    const target = dockTarget(q);
+    input.value = "";
+    state.activeAgent = target;
+    store.set("activeAgent", target);
+    renderAgents();
+    renderCockpit();
+    $("#btnActiveAgent").textContent = AGENTS[target].initial;
+    $("#systemStatusLine").textContent = AGENTS[target].name + " READY · routed by Mothership";
+    updateDockLabel(target);
+
+    const before = (state.chats[target] || []).length;
+    const reply = chatSend(target, q);
+    const replyEl = $("#dockReply");
+    if (replyEl) {
+      replyEl.style.display = "block";
+      if (reply) {
+        replyEl.textContent = AGENTS[target].name + ": " + reply;
+      } else {
+        replyEl.textContent = AGENTS[target].name + " is handling that…";
+        setTimeout(() => {
+          const list = state.chats[target] || [];
+          if (list.length > before) {
+            const last = list[list.length - 1];
+            if (last && last.role === "agent") replyEl.textContent = AGENTS[target].name + ": " + last.text;
+          }
+        }, 800);
+      }
+    }
+  }
+
+  function wireDock() {
+    renderDockAgents();
+    updateDockLabel();
+    const input = $("#dockInput");
+    const send = $("#dockSend");
+    if (send) send.addEventListener("click", sendDock);
+    if (input) input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        sendDock();
+      }
+    });
+    const collapse = $("#btnDockCollapse");
+    if (collapse) collapse.addEventListener("click", () => {
+      const dock = $("#mothershipDock");
+      const now = !dock.classList.contains("collapsed");
+      dock.classList.toggle("collapsed", now);
+      collapse.textContent = now ? "+" : "−";
+      collapse.setAttribute("aria-expanded", String(!now));
+    });
+    const open = $("#dockOpenChat");
+    if (open) open.addEventListener("click", () => {
+      const target = state.dockAgent === "auto" ? state.activeAgent : state.dockAgent;
+      if (AGENTS[target]) {
+        state.activeAgent = target;
+        store.set("activeAgent", target);
+        renderAgents();
+        renderCockpit();
+      }
+      focusHomeCockpit();
+    });
   }
 
   function applyWorldUI() {
@@ -1949,6 +2106,8 @@
     if (a && AGENTS[a]) state.activeAgent = a;
     const b = store.get("agentBeforeCreative", null);
     if (b && AGENTS[b]) state.agentBeforeCreative = b;
+    const dock = store.get("dockAgent", "auto");
+    state.dockAgent = dock === "auto" || AGENTS[dock] ? dock : "auto";
 
     const today = store.get("today", null);
     if (isObj(today)) {
@@ -3934,6 +4093,8 @@
       jarvis: "You are Jarvis, System Core / Technical Intelligence. Crisp and technical but plain-spoken. You explain how the system works, diagnose problems, and suggest automation — honestly, without claiming capabilities the shell doesn't have.",
       sauce:
         "You are Sauce Sensei, Creative Architect + Aesthetic Director for Lil Wiz-Nap and UTC.OS. Expressive and visual. Style profile: near-black / obsidian base, rich purple and blue-violet depth, magenta used sparingly, antique gold for authority, purposeful glow that marks focus (not decoration), display serif for hierarchy and clean sans for body. Reject generic startup cards and washed-out palettes.",
+      bastion:
+        "You are Bastion, UTC.OS Security and Truth-State gate. Calm, exact, and skeptical. Verify connection claims, permissions, privacy boundaries, backups, and risky actions. Never call something connected, backed up, secure, or completed without evidence.",
     };
     if (roles[key]) return roles[key];
     const spec = SPECIALISTS.find((s) => s.id === key);
@@ -4199,6 +4360,7 @@
     wireBrain();
     wireSetup();
     wireInstall();
+    wireDock();
     mountChat($("#answerPanel"), () => state.activeAgent);
     $("#cockpitClear").addEventListener("click", () => clearChat(state.activeAgent));
     wireAiSettings();
