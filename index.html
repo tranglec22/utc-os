@@ -725,7 +725,7 @@
           <h2>Agent Core + Second Brain</h2>
           <p class="small muted" style="margin:4px 0 8px">Connect this Mothership to the same private Agent Core used by Echo Trace and ChatGPT/MCP. Once verified, private memory can sync across surfaces instead of living only in this browser.</p>
           <ul class="ai-warn-list small">
-            <li>The access key is saved on <strong>this browser/device only</strong> and is excluded from Export backups.</li>
+            <li>The access key is saved in <strong>this browser's local storage on this device</strong> and is excluded from Export backups. Unlike Echo Trace, a browser cannot protect it with Android Keystore.</li>
             <li>Use only an <strong>HTTPS</strong> Agent Core URL outside local development.</li>
             <li>The encrypted Safety Vault remains separate from ordinary memory search.</li>
           </ul>
@@ -751,7 +751,7 @@
           <p class="small muted" style="margin:4px 0 8px">Optional. With your own OpenAI API key, agent chats answer anything local commands can't handle. Local commands always run first and never use AI.</p>
           <ul class="ai-warn-list small">
             <li>Your key is saved <strong>in this browser on this device only</strong> — never synced, never in backups, never in chat history.</li>
-            <li>Usage is <strong>billed to your OpenAI account</strong>. Each AI reply sends your question, recent chat with that agent, and a short summary of your local data (tasks, habits, goals, leads, memories, design decisions) to OpenAI.</li>
+            <li>Usage is <strong>billed to your OpenAI account</strong>. Each AI reply sends your question, recent chat with that agent, a short summary of local data, and, when Agent Core is connected, relevant shared Second Brain context to OpenAI.</li>
             <li><strong>Don't use this on a shared or public device.</strong> Tap Remove when you're done if others use this browser.</li>
           </ul>
           <p class="small muted" id="aiKeyState" style="margin:10px 0 6px">No key saved</p>
