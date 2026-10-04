@@ -1,0 +1,28 @@
+name: Agent Core Live Check
+
+on:
+  schedule:
+    - cron: "47 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live deployment
+        shell: bash
+        env:
+          CORE_URL: ${{ secrets.UTCOS_AGENT_CORE_URL }}
+          CORE_KEY: ${{ secrets.UTCOS_AGENT_CORE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CORE_URL:-}" ] || [ -z "${CORE_KEY:-}" ]; then
+            echo "Live Agent Core secrets are not configured yet; skipping safely."
+            exit 0
+          fi
+
+          CORE_URL="${CORE_URL%/}"
+          curl --fail-with-body --retry 3 --retry-delay 5 "$CORE_URL/ready"
+          curl --fail-with-body --retry 3 --retry-delay 5 "$CORE_URL/v1/agents"             -H "Authorization: Bearer $CORE_KEY"             -H "Accept: application/json"
+
+          echo "Agent Core live deployment verified."

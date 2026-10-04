@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/agents.js && node --check src/bastion.js && node --check src/mcp.js && node --check src/config.js && node --check src/vault.js && node --check src/memory-policy.js && node --check scripts/init-db.mjs && node --test",
-    "db:init": "node scripts/init-db.mjs"
+    "check": "node --check src/server.js && node --check src/agents.js && node --check src/bastion.js && node --check src/mcp.js && node --check src/config.js && node --check src/vault.js && node --check src/memory-policy.js && node --check scripts/init-db.mjs && node --check scripts/backup-db.mjs && node --check scripts/inspect-backup.mjs && node --test",
+    "db:init": "node scripts/init-db.mjs",
+    "backup": "node scripts/backup-db.mjs",
+    "backup:inspect": "node scripts/inspect-backup.mjs"
   },
   "engines": {
     "node": ">=20"

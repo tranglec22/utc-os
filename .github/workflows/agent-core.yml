@@ -7,6 +7,7 @@ on:
       - "assets/app.js"
       - "index.html"
       - "sw.js"
+      - "render.yaml"
       - ".github/workflows/agent-core.yml"
   workflow_dispatch:
 
@@ -35,6 +36,7 @@ jobs:
       PGSSL: disable
       UTCOS_AGENT_CORE_KEY: ci-agent-core-key
       UTCOS_VAULT_KEY: ci-vault-key-123456789012345678901234
+      UTCOS_BACKUP_KEY: ci-backup-key-12345678901234567890123
       PORT: "8787"
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +51,9 @@ jobs:
         working-directory: .
         run: node --check assets/app.js
       - run: npm run db:init
+      - name: Validate Render Blueprint YAML
+        working-directory: .
+        run: ruby -e "require 'yaml'; YAML.load_file('render.yaml'); puts 'render.yaml valid'"
       - name: REST + encrypted vault smoke test
         shell: bash
         run: |
@@ -57,7 +62,7 @@ jobs:
           PID=$!
           trap 'kill "$PID" || true; cat /tmp/utcos-agent-core.log || true' EXIT
           for i in {1..20}; do
-            curl -fsS http://127.0.0.1:8787/health >/dev/null && break
+            curl -fsS http://127.0.0.1:8787/ready >/dev/null && break
             sleep 1
           done
           HEADERS=$(mktemp)
@@ -70,6 +75,18 @@ jobs:
           curl -fsS http://127.0.0.1:8787/v1/vault             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" | grep -q "CI vault item"
           READ=$(curl -fsS "http://127.0.0.1:8787/v1/vault/$ID"             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY")
           node -e 'const x=JSON.parse(process.argv[1]); if(x.entry.plaintext!=="ci-secret-value") process.exit(1)' "$READ"
+      - name: Encrypted backup round-trip smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          export UTCOS_BACKUP_PATH=/tmp/utcos-ci.backup.enc.json
+          npm run backup
+          test -s "$UTCOS_BACKUP_PATH"
+          if grep -q "ci-secret-value" "$UTCOS_BACKUP_PATH"; then
+            echo "plaintext leaked into encrypted backup"
+            exit 1
+          fi
+          npm run backup:inspect -- "$UTCOS_BACKUP_PATH" | grep -q '"valid": true'
       - name: Docker build
         working-directory: .
         run: docker build -f server/Dockerfile -t utcos-agent-core:ci server

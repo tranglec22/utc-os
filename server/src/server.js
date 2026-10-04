@@ -58,6 +58,25 @@ function requireDb(res) {
   return true;
 }
 
+app.get("/ready", async (_req, res) => {
+  const status = {
+    ok: false,
+    database: false,
+    agentCoreKey: Boolean(process.env.UTCOS_AGENT_CORE_KEY),
+    vaultKey: vaultConfigured()
+  };
+  if (pool) {
+    try {
+      await pool.query("SELECT 1");
+      status.database = true;
+    } catch (error) {
+      status.database = false;
+    }
+  }
+  status.ok = status.database && status.agentCoreKey && status.vaultKey;
+  res.status(status.ok ? 200 : 503).json(status);
+});
+
 app.get("/health", (_req, res) => {
   res.json({
     ok: true,
