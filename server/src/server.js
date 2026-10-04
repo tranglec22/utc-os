@@ -93,6 +93,26 @@ app.get("/v1/agents", requireKey, (_req, res) => {
   res.json({ agents: Object.values(AGENTS) });
 });
 
+app.get("/v1/status", requireKey, async (_req, res) => {
+  let database = false;
+  if (pool) {
+    try {
+      await pool.query("SELECT 1");
+      database = true;
+    } catch (error) {
+      database = false;
+    }
+  }
+  res.json({
+    service: "utcos-agent-core",
+    database,
+    vault: vaultConfigured(),
+    llm: llmConfig().ready,
+    privateLlmContext: llmConfig().allowPrivateMemory,
+    agents: Object.keys(AGENTS)
+  });
+});
+
 app.post("/v1/route", requireKey, (req, res) => {
   const agent = routeAgent(req.body?.text || "");
   res.json({ agent });
