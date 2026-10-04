@@ -8,7 +8,7 @@ services:
     dockerfilePath: ./server/Dockerfile
     dockerContext: ./server
     dockerCommand: /bin/sh -c "npm run db:init && npm start"
-    healthCheckPath: /health
+    healthCheckPath: /ready
     autoDeployTrigger: checksPass
     envVars:
       - key: DATABASE_URL
