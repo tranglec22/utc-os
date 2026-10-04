@@ -2,10 +2,11 @@ import express from "express";
 import pg from "pg";
 import { AGENTS, routeAgent } from "./agents.js";
 import { reviewIngestion } from "./bastion.js";
+import { toNodeHandler } from "@modelcontextprotocol/node";
+import { createAgentCoreMcpHandler } from "./mcp.js";
 
 const { Pool } = pg;
 const app = express();
-app.use(express.json({ limit: "2mb" }));
 
 const port = Number(process.env.PORT || 8787);
 const pool = process.env.DATABASE_URL
@@ -19,6 +20,10 @@ function requireKey(req, res, next) {
   if (supplied !== configured) return res.status(401).json({ error: "unauthorized" });
   next();
 }
+
+const mcpHandler = createAgentCoreMcpHandler(pool);
+app.all("/mcp", requireKey, toNodeHandler(mcpHandler));
+app.use(express.json({ limit: "2mb" }));
 
 function requireDb(res) {
   if (!pool) {
