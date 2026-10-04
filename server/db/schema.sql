@@ -57,3 +57,18 @@ CREATE INDEX IF NOT EXISTS memories_search_idx
 CREATE INDEX IF NOT EXISTS memories_workspace_idx ON memories(workspace);
 CREATE INDEX IF NOT EXISTS memories_status_idx ON memories(status);
 CREATE INDEX IF NOT EXISTS ingestion_status_idx ON ingestion_inbox(status, bastion_state);
+
+
+CREATE TABLE IF NOT EXISTS vault_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  secret_ciphertext BYTEA NOT NULL,
+  workspace TEXT NOT NULL DEFAULT 'All work',
+  source TEXT NOT NULL DEFAULT 'manual',
+  created_by TEXT NOT NULL DEFAULT 'user',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS vault_entries_workspace_idx ON vault_entries(workspace) WHERE deleted_at IS NULL;
