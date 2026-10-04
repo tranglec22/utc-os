@@ -10,9 +10,29 @@ on:
 jobs:
   syntax:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: utcos
+          POSTGRES_PASSWORD: utcos-test
+          POSTGRES_DB: utcos
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U utcos -d utcos"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: server
+    env:
+      DATABASE_URL: postgresql://utcos:utcos-test@localhost:5432/utcos
+      PGSSL: disable
+      UTCOS_AGENT_CORE_KEY: ci-agent-core-key
+      UTCOS_VAULT_KEY: ci-vault-key-123456789012345678901234
+      PORT: "8787"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,3 +42,24 @@ jobs:
           cache-dependency-path: server/package.json
       - run: npm install --package-lock=false
       - run: npm run check
+      - run: npm run db:init
+      - name: REST + encrypted vault smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm start >/tmp/utcos-agent-core.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true; cat /tmp/utcos-agent-core.log || true' EXIT
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:8787/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8787/v1/agents             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" >/dev/null
+          BODY=$(curl -fsS -X POST http://127.0.0.1:8787/v1/vault             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY"             -H "Content-Type: application/json"             -d '{"title":"CI vault item","plaintext":"ci-secret-value","workspace":"UTC.OS"}')
+          ID=$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.entry.id)' "$BODY")
+          curl -fsS http://127.0.0.1:8787/v1/vault             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" | grep -q "CI vault item"
+          READ=$(curl -fsS "http://127.0.0.1:8787/v1/vault/$ID"             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY")
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.entry.plaintext!=="ci-secret-value") process.exit(1)' "$READ"
+      - name: Docker build
+        working-directory: .
+        run: docker build -f server/Dockerfile -t utcos-agent-core:ci server
