@@ -1,0 +1,28 @@
+name: Mothership UI CI
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "assets/**"
+      - ".github/workflows/mothership-ui.yml"
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check JavaScript syntax
+        run: node --check assets/app.js
+      - name: Verify command dock IDs
+        shell: bash
+        run: |
+          grep -q 'id="mothershipDock"' index.html
+          grep -q 'id="dockInput"' index.html
+          grep -q 'id="dockAgents"' index.html
+          grep -q 'function autoRouteAgent' assets/app.js
+          grep -q 'name: "Bastion"' assets/app.js
