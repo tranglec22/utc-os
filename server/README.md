@@ -95,3 +95,30 @@ The root repository is public. Do not commit private Second Brain data here.
 3. Point Echo Trace at the deployed REST URL.
 4. Point ChatGPT/plugin and Cosmic Mothership at `/mcp`.
 5. Add off-site encrypted database backups once a storage target is chosen.
+
+
+## Render deployment
+
+The repository root now includes `render.yaml`, which provisions:
+
+- `utcos-agent-core` as a Docker web service.
+- `utcos-second-brain` as PostgreSQL.
+- generated `UTCOS_AGENT_CORE_KEY` and `UTCOS_VAULT_KEY` secrets.
+- the database connection through Render's database reference.
+- the full `/ready` probe as the service health check.
+
+The Docker start command runs the idempotent database schema initializer before starting the API, so the free service path does not depend on Render's paid pre-deploy command feature.
+
+After the Blueprint is created, copy the generated Agent Core bearer key into the clients that need it. Never paste the vault key into Echo Trace, the browser shell, or ChatGPT. The vault key stays server-side.
+
+The GitHub daily-rollup workflow still needs two repository secrets after deployment:
+- `UTCOS_AGENT_CORE_URL`
+- `UTCOS_AGENT_CORE_KEY`
+
+## Encrypted backups
+
+`npm run backup` creates an AES-256-GCM encrypted logical snapshot of Second Brain tables, including the already-encrypted vault ciphertext. The backup is encrypted again with a separate `UTCOS_BACKUP_KEY`.
+
+`npm run backup:inspect -- <file>` decrypts only long enough in memory to validate the envelope and report record counts. It does not print memory or vault contents.
+
+Keep `UTCOS_BACKUP_KEY` separate from both the Agent Core bearer key and the Safety Vault key. The repository does not upload backups anywhere automatically yet, because the off-site storage destination must be an account you control.
