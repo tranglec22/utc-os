@@ -4,6 +4,7 @@ import { AGENTS, routeAgent } from "./agents.js";
 import { reviewIngestion } from "./bastion.js";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createAgentCoreMcpHandler } from "./mcp.js";
+import { vaultConfigured, storeVaultEntry, readVaultEntry } from "./vault.js";
 
 const { Pool } = pg;
 const app = express();
@@ -38,7 +39,8 @@ app.get("/health", (_req, res) => {
     ok: true,
     service: "utcos-agent-core",
     agents: Object.keys(AGENTS),
-    databaseConfigured: Boolean(pool)
+    databaseConfigured: Boolean(pool),
+    vaultConfigured: vaultConfigured()
   });
 });
 
@@ -240,6 +242,49 @@ app.post("/v1/ingest/:id/review", requireKey, async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+app.get("/v1/vault", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  const params = [];
+  let sql = "SELECT id,title,workspace,source,created_by,created_at,updated_at FROM vault_entries WHERE deleted_at IS NULL";
+  if (req.query.workspace) { params.push(String(req.query.workspace)); sql += " AND workspace=$1"; }
+  sql += " ORDER BY updated_at DESC LIMIT 200";
+  const q = await pool.query(sql, params);
+  res.json({ entries: q.rows });
+});
+
+app.post("/v1/vault", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  if (!vaultConfigured()) return res.status(503).json({ error: "UTCOS_VAULT_KEY is not configured" });
+  try {
+    const entry = await storeVaultEntry(pool, process.env.UTCOS_VAULT_KEY, req.body || {});
+    await pool.query("INSERT INTO agent_events(agent_id,event_type,payload) VALUES('bastion','vault.store',$1::jsonb)", [JSON.stringify({ id: entry.id, title: entry.title, workspace: entry.workspace })]);
+    res.status(201).json({ entry });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/v1/vault/:id", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  if (!vaultConfigured()) return res.status(503).json({ error: "UTCOS_VAULT_KEY is not configured" });
+  try {
+    const entry = await readVaultEntry(pool, process.env.UTCOS_VAULT_KEY, req.params.id);
+    if (!entry) return res.status(404).json({ error: "vault entry not found" });
+    await pool.query("INSERT INTO agent_events(agent_id,event_type,payload) VALUES('bastion','vault.read',$1::jsonb)", [JSON.stringify({ id: entry.id, title: entry.title })]);
+    res.json({ entry });
+  } catch (error) {
+    res.status(500).json({ error: "vault read failed" });
+  }
+});
+
+app.delete("/v1/vault/:id", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  const q = await pool.query("UPDATE vault_entries SET deleted_at=now(),updated_at=now() WHERE id=$1 AND deleted_at IS NULL RETURNING id,title", [req.params.id]);
+  if (!q.rowCount) return res.status(404).json({ error: "vault entry not found" });
+  await pool.query("INSERT INTO agent_events(agent_id,event_type,payload) VALUES('bastion','vault.delete',$1::jsonb)", [JSON.stringify(q.rows[0])]);
+  res.json({ deleted: q.rows[0] });
 });
 
 app.post("/v1/rollup/daily", requireKey, async (_req, res) => {
