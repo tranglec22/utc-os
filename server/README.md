@@ -122,3 +122,8 @@ The GitHub daily-rollup workflow still needs two repository secrets after deploy
 `npm run backup:inspect -- <file>` decrypts only long enough in memory to validate the envelope and report record counts. It does not print memory or vault contents.
 
 Keep `UTCOS_BACKUP_KEY` separate from both the Agent Core bearer key and the Safety Vault key. The repository does not upload backups anywhere automatically yet, because the off-site storage destination must be an account you control.
+
+
+## Live deployment verification
+
+`.github/workflows/agent-core-live-check.yml` runs a daily authenticated production check after deployment. It verifies `/ready` and `/v1/agents` with retries. Before the deployment secrets exist it exits safely instead of pretending the service is live.
