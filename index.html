@@ -55,6 +55,28 @@
       </div>
     </header>
 
+    <section class="mothership-dock" id="mothershipDock" aria-label="Mothership command dock">
+      <div class="dock-top">
+        <div>
+          <div class="section-label">Mothership Command</div>
+          <div class="dock-title" id="dockTitle">Auto-route to the right agent</div>
+        </div>
+        <button type="button" class="dock-collapse" id="btnDockCollapse" aria-expanded="true" aria-controls="dockBody">−</button>
+      </div>
+      <div id="dockBody">
+        <div class="dock-agents" id="dockAgents" role="list" aria-label="Choose an agent"></div>
+        <div class="dock-row">
+          <input type="text" id="dockInput" placeholder="Talk, dump an idea, ask a question, or give me a task…" autocomplete="off" />
+          <button type="button" class="btn btn-gold" id="dockSend">Send</button>
+        </div>
+        <div class="dock-meta">
+          <span id="dockRouteLabel">AUTO · Kara catches anything that does not clearly belong elsewhere</span>
+          <button type="button" class="small gold" id="dockOpenChat">Open full chat</button>
+        </div>
+        <div class="dock-reply" id="dockReply" aria-live="polite"></div>
+      </div>
+    </section>
+
     <main class="main" id="main">
       <!-- ========== HOME ========== -->
       <section class="view active" id="view-home" data-view="home">
@@ -609,83 +631,49 @@
       <!-- ========== CONNECTIONS ========== -->
       <section class="view" id="view-connections" data-view="connections">
         <button type="button" class="small gold" data-nav="system" style="margin-bottom:10px">← Back to System</button>
-        <div class="section-label">Verified Connections</div>
+        <div class="section-label">Connection truth</div>
         <h1 style="font-size:24px">Connections</h1>
-        <p class="muted small" style="margin-bottom:14px">Labels match OBSERVED live UI. Do not treat Launch points as Connected.</p>
+        <p class="muted small" style="margin-bottom:14px">Only the connections that matter to the Mothership stay visible here. Everything else is optional and collapsed so this does not become a museum of buttons nobody needs.</p>
 
         <div class="conn-card">
           <div class="conn-card-top">
-            <span class="conn-name">Lead Radar</span>
-            <span class="badge connected">Connected</span>
+            <span class="conn-name">UTC.OS Agent Core + Second Brain</span>
+            <span class="badge notconn" id="coreConnBadge">Deployment pending</span>
           </div>
-          <p class="small muted">Verified public feed with source URLs and local duplicate-safe status/notes. Scheduled Grok web + X refresh is available when the repository secret is configured.</p>
-          <button type="button" class="btn btn-outline" style="margin-top:10px" data-nav="lead-center">Open Lead Center</button>
+          <p class="small muted">This is the shared brain for Margaret, Kara, Jarvis, Sauce Sensei, Bastion, Echo Trace, ChatGPT/MCP, and Cosmic Mothership. The code is built; the live database/host still needs deployment.</p>
         </div>
 
         <div class="conn-card">
           <div class="conn-card-top">
-            <span class="conn-name">Live web search</span>
-            <span class="badge connected">Connected</span>
+            <span class="conn-name">Echo Trace</span>
+            <span class="badge launch">App-ready</span>
           </div>
-          <p class="small muted">Source-verified Pittsburgh discovery (capability status from live UI — not executed in this shell).</p>
+          <p class="small muted">Echo Trace is wired to send completed transcripts into the shared Second Brain ingestion inbox once the Agent Core has a live URL and access key.</p>
         </div>
 
         <div class="conn-card">
           <div class="conn-card-top">
-            <span class="conn-name">OpenAI (your key)</span>
+            <span class="conn-name">OpenAI (optional direct browser key)</span>
             <span class="badge notconn" id="aiConnBadge">Not connected</span>
           </div>
-          <p class="small muted" id="aiConnDetail">No key saved. Optional: add your own OpenAI key in Settings → AI connection.</p>
+          <p class="small muted" id="aiConnDetail">No key saved. This browser-only connection is optional; the long-term Mothership path is the shared Agent Core.</p>
           <button type="button" class="btn btn-outline" style="margin-top:10px" data-nav="settings">Open Settings</button>
         </div>
 
-        <div class="conn-card">
-          <div class="conn-card-top">
-            <span class="conn-name">Notion</span>
-            <span class="badge launch">Launch point</span>
+        <details class="card">
+          <summary class="gold small" style="cursor:pointer">Optional launch points</summary>
+          <p class="small muted" style="margin:10px 0">These are conveniences, not required Mothership connections.</p>
+          <div class="optional-links">
+            <a class="btn btn-ghost" href="#" id="linkNotion">Notion</a>
+            <a class="btn btn-ghost" href="#" id="linkGmail">Gmail</a>
+            <a class="btn btn-ghost" href="#" id="linkCalendar">Calendar</a>
+            <a class="btn btn-ghost" href="https://www.canva.com" target="_blank" rel="noopener">Canva</a>
+            <a class="btn btn-ghost" href="https://www.veed.io" target="_blank" rel="noopener">VEED</a>
           </div>
-          <p class="small muted">Read the durable Job Radar mirror and organized knowledge.</p>
-          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="#" id="linkNotion">Open Job Radar</a>
-        </div>
-
-        <div class="conn-card">
-          <div class="conn-card-top">
-            <span class="conn-name">Gmail</span>
-            <span class="badge launch">Launch point</span>
-          </div>
-          <p class="small muted">Review drafts and send only after you approve them.</p>
-          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="#" id="linkGmail">Open drafts</a>
-        </div>
-
-        <div class="conn-card">
-          <div class="conn-card-top">
-            <span class="conn-name">Google Calendar</span>
-            <span class="badge launch">Launch point</span>
-          </div>
-          <p class="small muted">Schedule estimates and follow-ups.</p>
-          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="#" id="linkCalendar">Open calendar</a>
-        </div>
-
-        <div class="conn-card">
-          <div class="conn-card-top">
-            <span class="conn-name">Canva</span>
-            <span class="badge launch">Launch point</span>
-          </div>
-          <p class="small muted">Turn Studio prompts into designs.</p>
-          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="https://www.canva.com" target="_blank" rel="noopener">Open Canva</a>
-        </div>
-
-        <div class="conn-card">
-          <div class="conn-card-top">
-            <span class="conn-name">VEED</span>
-            <span class="badge launch">Launch point</span>
-          </div>
-          <p class="small muted">Video edits for Lil Wiz-Nap / creative work.</p>
-          <a class="btn btn-ghost" style="margin-top:10px;display:inline-flex" href="https://www.veed.io" target="_blank" rel="noopener">Open VEED</a>
-        </div>
+        </details>
 
         <div class="answer-panel" id="connAnswer" style="display:none;margin-top:8px"></div>
-        <p class="safety-note">Connection rule (OBSERVED): external services are not silently or automatically connected.</p>
+        <p class="safety-note">Connection rule: no service is called connected unless the current app can actually verify it.</p>
       </section>
 
       <!-- ========== SEARCH (stub) ========== -->
