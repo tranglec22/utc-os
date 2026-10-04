@@ -4159,7 +4159,7 @@
     const st = $("#coreKeyState");
     if (st) {
       st.textContent = v
-        ? "Verified " + new Date(v.at).toLocaleString() + " · " + coreUrl()
+        ? "Verified " + new Date(v.at).toLocaleString() + " · " + (v.llm ? "agent runtime ready" : "memory connected · agent runtime needs provider") + " · " + coreUrl()
         : coreKey() && coreUrl()
           ? "Connection saved on this device · Test required"
           : "Not configured";
@@ -4192,11 +4192,11 @@
     $("#btnCoreTest").addEventListener("click", async () => {
       const btn = $("#btnCoreTest");
       btn.disabled = true; btn.textContent = "Testing…";
-      const r = await coreCall("GET", "/v1/agents");
+      const r = await coreCall("GET", "/v1/status");
       btn.textContent = "Test";
       if (r.ok) {
-        store.set("coreVerified", { ok: true, at: new Date().toISOString() });
-        coreMsg("Agent Core verified. This Mothership can use the shared Second Brain.", "ai-ok");
+        store.set("coreVerified", { ok: true, at: new Date().toISOString(), llm: !!r.data?.llm, privateLlmContext: !!r.data?.privateLlmContext });
+        coreMsg(r.data?.llm ? "Agent Core verified. Shared memory and live agent runtime are ready." : "Agent Core verified for shared memory. The server-side agent model is not configured yet; direct browser AI remains the fallback.", r.data?.llm ? "ai-ok" : "ai-warn");
       } else {
         coreUnverify();
         coreMsg("Agent Core test failed: " + r.error, "ai-err");
@@ -4427,16 +4427,25 @@
   }
 
   function aiEngineLabel() {
+    const core = coreVerified();
+    if (core && core.llm) return "Local first · Agent Core";
+    if (core) return aiKey() ? "Local first · Shared Brain · browser AI fallback" : "Local first · Shared Brain";
     return aiKey() ? "Local first · AI: your key" : ENGINE_LABEL;
   }
 
   function updateAiUI() {
     $$(".engine-label").forEach((el) => (el.textContent = aiEngineLabel()));
     const foot = $("#cockpitFootnote");
-    if (foot)
-      foot.innerHTML = aiKey()
-        ? "Local commands run first. Anything else goes to OpenAI with your own key (" + escapeHtml(aiModel()) + "), billed to your OpenAI account. Type <strong>help</strong> for commands."
-        : "Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.";
+    if (foot) {
+      const core = coreVerified();
+      foot.innerHTML = core && core.llm
+        ? "Local commands run first. Open-ended requests go to the shared Agent Core with Second Brain context. Type <strong>help</strong> for local commands."
+        : core
+          ? "Shared Second Brain connected. The Agent Core model is not configured yet" + (aiKey() ? ", so open-ended requests fall back to your browser AI key." : ".") + " Type <strong>help</strong> for local commands."
+          : aiKey()
+            ? "Local commands run first. Anything else goes to OpenAI with your own key (" + escapeHtml(aiModel()) + "), billed to your OpenAI account. Type <strong>help</strong> for commands."
+            : "Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.";
+    }
     const v = aiVerified();
     const badge = $("#aiConnBadge");
     if (badge) {
