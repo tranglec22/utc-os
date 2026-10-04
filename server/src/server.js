@@ -6,6 +6,7 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createAgentCoreMcpHandler } from "./mcp.js";
 import { vaultConfigured, storeVaultEntry, readVaultEntry } from "./vault.js";
 import { assertNormalMemorySensitivity } from "./memory-policy.js";
+import { callAgentLlm, llmConfig } from "./llm.js";
 
 const { Pool } = pg;
 const app = express();
@@ -83,7 +84,8 @@ app.get("/health", (_req, res) => {
     service: "utcos-agent-core",
     agents: Object.keys(AGENTS),
     databaseConfigured: Boolean(pool),
-    vaultConfigured: vaultConfigured()
+    vaultConfigured: vaultConfigured(),
+    llmConfigured: llmConfig().ready
   });
 });
 
@@ -94,6 +96,63 @@ app.get("/v1/agents", requireKey, (_req, res) => {
 app.post("/v1/route", requireKey, (req, res) => {
   const agent = routeAgent(req.body?.text || "");
   res.json({ agent });
+});
+
+app.post("/v1/agent/respond", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  const requested = String(req.body?.agentId || "");
+  const agent = AGENTS[requested] || routeAgent(req.body?.message || "");
+  const message = String(req.body?.message || "").trim();
+  if (!message) return res.status(400).json({ error: "message is required" });
+
+  const cfg = llmConfig();
+  if (!cfg.ready) return res.status(503).json({ error: "Agent Core LLM is not configured" });
+
+  const workspace = String(req.body?.workspace || "All work");
+  const includePrivate = cfg.allowPrivateMemory && req.body?.includePrivateMemory !== false;
+  const memorySql = includePrivate
+    ? `SELECT id,title,detail,workspace,source,sensitivity,confidence,updated_at
+       FROM memories
+       WHERE status='active' AND sensitivity IN ('public-safe','private')
+         AND (workspace=$1 OR workspace='All work')
+       ORDER BY updated_at DESC LIMIT 30`
+    : `SELECT id,title,detail,workspace,source,sensitivity,confidence,updated_at
+       FROM memories
+       WHERE status='active' AND sensitivity='public-safe'
+         AND (workspace=$1 OR workspace='All work')
+       ORDER BY updated_at DESC LIMIT 30`;
+
+  const memories = await pool.query(memorySql, [workspace]);
+  const history = Array.isArray(req.body?.history) ? req.body.history : [];
+  const result = await callAgentLlm({
+    agent,
+    messages: history.concat([{ role: "user", content: message }]),
+    memoryContext: memories.rows
+  });
+
+  await pool.query(
+    `INSERT INTO agent_events(agent_id,event_type,payload)
+     VALUES($1,'agent.respond',$2::jsonb)`,
+    [agent.id, JSON.stringify({
+      workspace,
+      ok: result.ok,
+      model: result.model || null,
+      privateMemoryIncluded: includePrivate,
+      memoryCount: memories.rowCount
+    })]
+  );
+
+  if (!result.ok) return res.status(result.status || 502).json({ error: result.error });
+  res.json({
+    agent,
+    reply: result.text,
+    model: result.model,
+    context: {
+      workspace,
+      memoryCount: memories.rowCount,
+      privateMemoryIncluded: includePrivate
+    }
+  });
 });
 
 app.post("/v1/memory/remember", requireKey, async (req, res) => {
