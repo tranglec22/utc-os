@@ -74,6 +74,12 @@ Vault records are encrypted at rest in PostgreSQL using pgcrypto AES-256. Normal
 
 Vault access is audited through Bastion events. Keep `UTCOS_VAULT_KEY` separate from `UTCOS_AGENT_CORE_KEY` and out of Git.
 
+## Browser Mothership connection
+
+The UTC.OS browser shell now has an Agent Core connection panel in Settings. It stores the Agent Core URL and bearer key on that device only, excludes the key from local backup exports, verifies credentials through `/v1/agents`, saves explicit Memory captures to the shared Second Brain, and can inject shared memory context into direct AI replies.
+
+Cross-origin browser access is restricted to known UTC.OS origins plus optional comma-separated `UTCOS_ALLOWED_ORIGINS`. Authentication is still required on every private route.
+
 ## Privacy boundary
 
 The root repository is public. Do not commit private Second Brain data here.

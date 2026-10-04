@@ -10,6 +10,29 @@ import { assertNormalMemorySensitivity } from "./memory-policy.js";
 const { Pool } = pg;
 const app = express();
 
+const defaultOrigins = [
+  "https://tranglec22.github.io",
+  "https://utc-os-app.tranglec.chatgpt.site"
+];
+const configuredOrigins = String(process.env.UTCOS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((x) => x.trim())
+  .filter(Boolean);
+const allowedOrigins = new Set(defaultOrigins.concat(configuredOrigins));
+
+app.use((req, res, next) => {
+  const origin = req.get("origin");
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 const port = Number(process.env.PORT || 8787);
 const pool = process.env.DATABASE_URL
   ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.PGSSL === "disable" ? false : { rejectUnauthorized: false } })
