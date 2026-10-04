@@ -42,6 +42,20 @@ Health check:
 curl http://localhost:8787/health
 ```
 
+
+## MCP endpoint
+
+The service now exposes the same Agent Core and Second Brain through `/mcp` using the current Model Context Protocol HTTP server SDK.
+
+Tools:
+- `list_agents`
+- `route_agent`
+- `search_memory`
+- `remember_memory`
+- `ingest_source`
+
+The MCP endpoint uses the same `Authorization: Bearer <UTCOS_AGENT_CORE_KEY>` gate as the REST API. ChatGPT/plugin and Cosmic Mothership clients should point to the deployed HTTPS URL ending in `/mcp`.
+
 ## Privacy boundary
 
 The root repository is public. Do not commit private Second Brain data here.
