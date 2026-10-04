@@ -4001,8 +4001,13 @@
     } catch (e) {
       r = { text: "Local engine error — nothing was changed. (" + (e && e.message) + ")", kind: "miss" };
     }
+    if (r.kind === "unknown" && coreVerified()) {
+      saveChats();
+      coreAgentReply(key, q, r);
+      return null;
+    }
     if (r.kind === "unknown" && aiKey()) {
-      // Phase 6: no local command matched and the user saved their own key.
+      // Fallback only: direct browser AI is used when the shared Agent Core is unavailable.
       saveChats();
       aiReply(key, q);
       return null;
@@ -4027,11 +4032,13 @@
       return;
     }
     const who = (m) =>
-      m.src === "ai"
-        ? escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(m.model || "model") + "</span>"
-        : m.src === "ai-error"
-          ? escapeHtml(name) + ' · <span class="ai-tag err">AI · not answered</span>'
-          : escapeHtml(name) + " · local";
+      m.src === "core"
+        ? escapeHtml(name) + ' · <span class="ai-tag">Agent Core · ' + escapeHtml(m.model || "shared") + "</span>"
+        : m.src === "ai"
+          ? escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(m.model || "model") + "</span>"
+          : m.src === "ai-error"
+            ? escapeHtml(name) + ' · <span class="ai-tag err">AI · not answered</span>'
+            : escapeHtml(name) + " · local";
     el.innerHTML =
       list
         .map(
@@ -4042,7 +4049,7 @@
         )
         .join("") +
       (aiPending[key]
-        ? '<div class="chat-msg agent thinking" role="status"><div class="chat-who">' + escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(aiModel()) + '</span></div><div class="chat-text">Thinking<span class="dots"><i>.</i><i>.</i><i>.</i></span></div></div>'
+        ? '<div class="chat-msg agent thinking" role="status"><div class="chat-who">' + escapeHtml(name) + ' · <span class="ai-tag">' + (coreVerified() ? "Agent Core" : "AI · " + escapeHtml(aiModel())) + '</span></div><div class="chat-text">Thinking<span class="dots"><i>.</i><i>.</i><i>.</i></span></div></div>'
         : "");
     el.scrollTop = el.scrollHeight;
   }
@@ -4354,6 +4361,48 @@
   function aiHistory(key) {
     const list = (state.chats[key] || []).slice(-11, -1);
     return list.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: String(m.text).slice(0, 1500) }));
+  }
+
+  async function coreAgentReply(key, userText, localFallback) {
+    aiPending[key] = (aiPending[key] || 0) + 1;
+    renderAllChats();
+    const history = (state.chats[key] || [])
+      .slice(-11, -1)
+      .map((m) => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: String(m.text).slice(0, 4000)
+      }));
+
+    const result = await coreCall("POST", "/v1/agent/respond", {
+      agentId: key,
+      message: userText,
+      workspace: state.world === "lilwiznap" ? "Music" : "All work",
+      history,
+      includePrivateMemory: true
+    });
+
+    aiPending[key] = Math.max(0, (aiPending[key] || 1) - 1);
+
+    if (result.ok && result.data && typeof result.data.reply === "string") {
+      pushChat(key, "agent", result.data.reply, {
+        src: "core",
+        model: result.data.model || "shared"
+      });
+      saveChats();
+      renderAllChats();
+      return result;
+    }
+
+    if (aiKey()) {
+      renderAllChats();
+      return aiReply(key, userText);
+    }
+
+    const fallback = localFallback || { kind: "unknown", text: "Agent Core could not answer this request." };
+    pushChat(key, "agent", voiced(key, fallback));
+    saveChats();
+    renderAllChats();
+    return result;
   }
 
   async function aiReply(key, userText) {
