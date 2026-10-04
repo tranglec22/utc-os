@@ -55,12 +55,18 @@ Tools:
 - `search_memory`
 - `remember_memory`
 - `ingest_source`
+- `update_memory`
+- `archive_memory`
+- `list_ingestion`
+- `review_ingestion`
+- `list_vault_metadata`
+- `store_vault_item`
 
 The MCP endpoint uses the same `Authorization: Bearer <UTCOS_AGENT_CORE_KEY>` gate as the REST API. ChatGPT/plugin and Cosmic Mothership clients should point to the deployed HTTPS URL ending in `/mcp`.
 
 ## Encrypted Safety Vault
 
-Vault records are encrypted at rest in PostgreSQL using pgcrypto AES-256. They are excluded from normal memory search/context and require explicit vault routes:
+Vault records are encrypted at rest in PostgreSQL using pgcrypto AES-256. Normal memory APIs and MCP memory tools reject `sensitivity=vault`; protected material must use the Safety Vault so it is never stored as plaintext memory. They are excluded from normal memory search/context and require explicit vault routes:
 - `GET /v1/vault` — metadata only
 - `POST /v1/vault` — encrypt and store
 - `GET /v1/vault/:id` — explicit decrypt/read
