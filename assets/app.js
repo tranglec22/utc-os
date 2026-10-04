@@ -2286,7 +2286,7 @@
           " local key(s) to " +
           a.download +
           ". File stays on this device." +
-          (aiKey() ? " Your OpenAI key was NOT included — it stays in this browser only." : "")
+          ((aiKey() || coreKey()) ? " Device credentials (OpenAI / Agent Core) were NOT included — they stay in this browser only." : "")
       );
     });
 
@@ -2343,7 +2343,7 @@
           dataMsg("Import cancelled. Nothing changed.");
           return;
         }
-        // Keep this device's own OpenAI key (never part of a backup).
+        // Keep this device's own private connection credentials (never part of a backup).
         const keepAi = DEVICE_PRIVATE_KEYS.map((k) => [k, window.localStorage.getItem(k)]);
         store.clearAll();
         keepAi.forEach(([k, v]) => {
@@ -2364,7 +2364,7 @@
       const ok = window.confirm(
         "Reset local data? This clears " +
           n +
-          " utcos-shell: key(s) on this device (tasks, habits, goals, lessons, chats, notes, runs, memories, decisions, settings" + (aiKey() ? ", and your saved OpenAI key" : "") + "). Fixture data stays."
+          " utcos-shell: key(s) on this device (tasks, habits, goals, lessons, chats, notes, runs, memories, decisions, settings" + ((aiKey() || coreKey()) ? ", plus saved private connection credentials" : "") + "). Fixture data stays."
       );
       if (!ok) {
         dataMsg("Reset cancelled. Nothing changed.");
