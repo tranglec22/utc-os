@@ -31,6 +31,8 @@ services:
         sync: false
       - key: UTCOS_ALLOW_PRIVATE_LLM_CONTEXT
         value: "false"
+      - key: UTCOS_OAUTH_PASSWORD
+        sync: false
 
 databases:
   - name: utcos-second-brain
