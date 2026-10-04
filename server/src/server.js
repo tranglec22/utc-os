@@ -7,6 +7,18 @@ import { createAgentCoreMcpHandler } from "./mcp.js";
 import { vaultConfigured, storeVaultEntry, readVaultEntry } from "./vault.js";
 import { assertNormalMemorySensitivity } from "./memory-policy.js";
 import { callAgentLlm, llmConfig } from "./llm.js";
+import {
+  publicBase,
+  safePasswordEqual,
+  registerClient,
+  validateAuthorizationRequest,
+  issueAuthorizationCode,
+  exchangeAuthorizationCode,
+  refreshAccessToken,
+  verifyOauthAccess,
+  authorizationServerMetadata,
+  protectedResourceMetadata
+} from "./oauth.js";
 
 const { Pool } = pg;
 const app = express();
@@ -47,9 +59,160 @@ function requireKey(req, res, next) {
   next();
 }
 
+async function requireMcpAuth(req, res, next) {
+  const supplied = req.get("authorization")?.replace(/^Bearer\s+/i, "") || "";
+  const staticKey = process.env.UTCOS_AGENT_CORE_KEY || "";
+  if (staticKey && supplied === staticKey) return next();
+
+  try {
+    if (await verifyOauthAccess(pool, supplied, "mcp:read")) return next();
+  } catch (error) {
+    // Fall through to a standards-compliant OAuth challenge.
+  }
+
+  const base = publicBase(req);
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource", scope="mcp:read mcp:write"`
+  );
+  return res.status(401).json({ error: "authorization required" });
+}
+
 const mcpHandler = createAgentCoreMcpHandler(pool);
-app.all("/mcp", requireKey, toNodeHandler(mcpHandler));
+app.all("/mcp", requireMcpAuth, toNodeHandler(mcpHandler));
 app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: false, limit: "64kb" }));
+
+
+function oauthDbReady(res) {
+  if (!pool) {
+    res.status(503).json({ error: "OAuth database is not configured" });
+    return false;
+  }
+  return true;
+}
+
+function htmlEscape(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+app.get("/.well-known/oauth-protected-resource", (req, res) => {
+  res.json(protectedResourceMetadata(publicBase(req)));
+});
+
+app.get("/.well-known/oauth-authorization-server", (req, res) => {
+  res.json(authorizationServerMetadata(publicBase(req)));
+});
+
+app.get("/oauth/about", (_req, res) => {
+  res.type("text/plain").send(
+    "UTC.OS Agent Core authorization protects the user's private Second Brain and MCP tools."
+  );
+});
+
+app.post("/oauth/register", async (req, res) => {
+  if (!oauthDbReady(res)) return;
+  try {
+    const client = await registerClient(pool, req.body || {});
+    res.status(201).json(client);
+  } catch (error) {
+    res.status(400).json({ error: "invalid_client_metadata", error_description: error.message });
+  }
+});
+
+app.get("/oauth/authorize", async (req, res) => {
+  if (!oauthDbReady(res)) return;
+  if (!process.env.UTCOS_OAUTH_PASSWORD) {
+    return res.status(503).type("text/plain").send("OAuth approval is not configured.");
+  }
+
+  try {
+    const base = publicBase(req);
+    const auth = await validateAuthorizationRequest(pool, req.query, base);
+    const hidden = {
+      response_type: "code",
+      client_id: auth.clientId,
+      redirect_uri: auth.redirectUri,
+      code_challenge: auth.codeChallenge,
+      code_challenge_method: "S256",
+      scope: auth.scope,
+      resource: auth.resource,
+      state: auth.state
+    };
+    const fields = Object.entries(hidden)
+      .map(([k,v]) => `<input type="hidden" name="${htmlEscape(k)}" value="${htmlEscape(v)}">`)
+      .join("");
+
+    res.type("html").send(`<!doctype html>
+<html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Authorize UTC.OS Agents</title>
+<style>
+body{font-family:system-ui;background:#09070d;color:#eee;margin:0;padding:24px}
+main{max-width:520px;margin:8vh auto;padding:24px;border:1px solid #5b3b78;border-radius:18px;background:#120d19}
+h1{color:#d5b45b}p{line-height:1.5;color:#c9c2d0}
+input[type=password]{width:100%;box-sizing:border-box;padding:14px;margin:12px 0;border-radius:10px;border:1px solid #65516f;background:#08060b;color:#fff}
+button{width:100%;padding:14px;border:0;border-radius:10px;background:#c9a227;color:#100b02;font-weight:700}
+.small{font-size:13px;color:#9b92a3}
+</style></head><body><main>
+<h1>Authorize UTC.OS Agents</h1>
+<p>Allow this ChatGPT MCP client to access the shared Agent Core and Second Brain with scopes <strong>${htmlEscape(auth.scope)}</strong>.</p>
+<p class="small">Safety Vault plaintext is not exposed as a generic MCP tool. Writes remain subject to ChatGPT action permissions.</p>
+<form method="post" action="/oauth/authorize">
+${fields}
+<label for="password">UTC.OS approval password</label>
+<input id="password" name="password" type="password" required autocomplete="current-password">
+<button type="submit">Authorize</button>
+</form></main></body></html>`);
+  } catch (error) {
+    res.status(400).type("text/plain").send("Invalid authorization request: " + error.message);
+  }
+});
+
+app.post("/oauth/authorize", async (req, res) => {
+  if (!oauthDbReady(res)) return;
+  const expected = process.env.UTCOS_OAUTH_PASSWORD || "";
+  if (!safePasswordEqual(req.body?.password, expected)) {
+    return res.status(401).type("text/plain").send("Invalid approval password.");
+  }
+
+  try {
+    const base = publicBase(req);
+    const auth = await validateAuthorizationRequest(pool, req.body, base);
+    const code = await issueAuthorizationCode(pool, auth);
+    const redirect = new URL(auth.redirectUri);
+    redirect.searchParams.set("code", code);
+    if (auth.state) redirect.searchParams.set("state", auth.state);
+    res.redirect(302, redirect.toString());
+  } catch (error) {
+    res.status(400).type("text/plain").send("Authorization failed: " + error.message);
+  }
+});
+
+app.post("/oauth/token", async (req, res) => {
+  if (!oauthDbReady(res)) return;
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Pragma", "no-cache");
+
+  try {
+    const base = publicBase(req);
+    let tokens;
+    if (req.body?.grant_type === "authorization_code") {
+      tokens = await exchangeAuthorizationCode(pool, req.body, base);
+    } else if (req.body?.grant_type === "refresh_token") {
+      tokens = await refreshAccessToken(pool, req.body, base);
+    } else {
+      return res.status(400).json({ error: "unsupported_grant_type" });
+    }
+    res.json(tokens);
+  } catch (error) {
+    res.status(400).json({ error: "invalid_grant", error_description: error.message });
+  }
+});
 
 function requireDb(res) {
   if (!pool) {
