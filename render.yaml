@@ -23,6 +23,14 @@ services:
         generateValue: true
       - key: UTCOS_ALLOWED_ORIGINS
         value: https://tranglec22.github.io,https://utc-os-app.tranglec.chatgpt.site
+      - key: UTCOS_LLM_BASE_URL
+        value: https://api.openai.com/v1
+      - key: UTCOS_LLM_API_KEY
+        sync: false
+      - key: UTCOS_LLM_MODEL
+        sync: false
+      - key: UTCOS_ALLOW_PRIVATE_LLM_CONTEXT
+        value: "false"
 
 databases:
   - name: utcos-second-brain

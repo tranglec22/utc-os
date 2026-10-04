@@ -4001,8 +4001,13 @@
     } catch (e) {
       r = { text: "Local engine error — nothing was changed. (" + (e && e.message) + ")", kind: "miss" };
     }
+    if (r.kind === "unknown" && coreVerified()) {
+      saveChats();
+      coreAgentReply(key, q, r);
+      return null;
+    }
     if (r.kind === "unknown" && aiKey()) {
-      // Phase 6: no local command matched and the user saved their own key.
+      // Fallback only: direct browser AI is used when the shared Agent Core is unavailable.
       saveChats();
       aiReply(key, q);
       return null;
@@ -4027,11 +4032,13 @@
       return;
     }
     const who = (m) =>
-      m.src === "ai"
-        ? escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(m.model || "model") + "</span>"
-        : m.src === "ai-error"
-          ? escapeHtml(name) + ' · <span class="ai-tag err">AI · not answered</span>'
-          : escapeHtml(name) + " · local";
+      m.src === "core"
+        ? escapeHtml(name) + ' · <span class="ai-tag">Agent Core · ' + escapeHtml(m.model || "shared") + "</span>"
+        : m.src === "ai"
+          ? escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(m.model || "model") + "</span>"
+          : m.src === "ai-error"
+            ? escapeHtml(name) + ' · <span class="ai-tag err">AI · not answered</span>'
+            : escapeHtml(name) + " · local";
     el.innerHTML =
       list
         .map(
@@ -4042,7 +4049,7 @@
         )
         .join("") +
       (aiPending[key]
-        ? '<div class="chat-msg agent thinking" role="status"><div class="chat-who">' + escapeHtml(name) + ' · <span class="ai-tag">AI · ' + escapeHtml(aiModel()) + '</span></div><div class="chat-text">Thinking<span class="dots"><i>.</i><i>.</i><i>.</i></span></div></div>'
+        ? '<div class="chat-msg agent thinking" role="status"><div class="chat-who">' + escapeHtml(name) + ' · <span class="ai-tag">' + (coreVerified() ? "Agent Core" : "AI · " + escapeHtml(aiModel())) + '</span></div><div class="chat-text">Thinking<span class="dots"><i>.</i><i>.</i><i>.</i></span></div></div>'
         : "");
     el.scrollTop = el.scrollHeight;
   }
@@ -4152,7 +4159,7 @@
     const st = $("#coreKeyState");
     if (st) {
       st.textContent = v
-        ? "Verified " + new Date(v.at).toLocaleString() + " · " + coreUrl()
+        ? "Verified " + new Date(v.at).toLocaleString() + " · " + (v.llm ? "agent runtime ready" : "memory connected · agent runtime needs provider") + " · " + coreUrl()
         : coreKey() && coreUrl()
           ? "Connection saved on this device · Test required"
           : "Not configured";
@@ -4185,11 +4192,11 @@
     $("#btnCoreTest").addEventListener("click", async () => {
       const btn = $("#btnCoreTest");
       btn.disabled = true; btn.textContent = "Testing…";
-      const r = await coreCall("GET", "/v1/agents");
+      const r = await coreCall("GET", "/v1/status");
       btn.textContent = "Test";
       if (r.ok) {
-        store.set("coreVerified", { ok: true, at: new Date().toISOString() });
-        coreMsg("Agent Core verified. This Mothership can use the shared Second Brain.", "ai-ok");
+        store.set("coreVerified", { ok: true, at: new Date().toISOString(), llm: !!r.data?.llm, privateLlmContext: !!r.data?.privateLlmContext });
+        coreMsg(r.data?.llm ? "Agent Core verified. Shared memory and live agent runtime are ready." : "Agent Core verified for shared memory. The server-side agent model is not configured yet; direct browser AI remains the fallback.", r.data?.llm ? "ai-ok" : "ai-warn");
       } else {
         coreUnverify();
         coreMsg("Agent Core test failed: " + r.error, "ai-err");
@@ -4356,6 +4363,48 @@
     return list.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: String(m.text).slice(0, 1500) }));
   }
 
+  async function coreAgentReply(key, userText, localFallback) {
+    aiPending[key] = (aiPending[key] || 0) + 1;
+    renderAllChats();
+    const history = (state.chats[key] || [])
+      .slice(-11, -1)
+      .map((m) => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: String(m.text).slice(0, 4000)
+      }));
+
+    const result = await coreCall("POST", "/v1/agent/respond", {
+      agentId: key,
+      message: userText,
+      workspace: state.world === "lilwiznap" ? "Music" : "All work",
+      history,
+      includePrivateMemory: true
+    });
+
+    aiPending[key] = Math.max(0, (aiPending[key] || 1) - 1);
+
+    if (result.ok && result.data && typeof result.data.reply === "string") {
+      pushChat(key, "agent", result.data.reply, {
+        src: "core",
+        model: result.data.model || "shared"
+      });
+      saveChats();
+      renderAllChats();
+      return result;
+    }
+
+    if (aiKey()) {
+      renderAllChats();
+      return aiReply(key, userText);
+    }
+
+    const fallback = localFallback || { kind: "unknown", text: "Agent Core could not answer this request." };
+    pushChat(key, "agent", voiced(key, fallback));
+    saveChats();
+    renderAllChats();
+    return result;
+  }
+
   async function aiReply(key, userText) {
     aiPending[key] = (aiPending[key] || 0) + 1;
     renderAllChats();
@@ -4378,16 +4427,25 @@
   }
 
   function aiEngineLabel() {
+    const core = coreVerified();
+    if (core && core.llm) return "Local first · Agent Core";
+    if (core) return aiKey() ? "Local first · Shared Brain · browser AI fallback" : "Local first · Shared Brain";
     return aiKey() ? "Local first · AI: your key" : ENGINE_LABEL;
   }
 
   function updateAiUI() {
     $$(".engine-label").forEach((el) => (el.textContent = aiEngineLabel()));
     const foot = $("#cockpitFootnote");
-    if (foot)
-      foot.innerHTML = aiKey()
-        ? "Local commands run first. Anything else goes to OpenAI with your own key (" + escapeHtml(aiModel()) + "), billed to your OpenAI account. Type <strong>help</strong> for commands."
-        : "Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.";
+    if (foot) {
+      const core = coreVerified();
+      foot.innerHTML = core && core.llm
+        ? "Local commands run first. Open-ended requests go to the shared Agent Core with Second Brain context. Type <strong>help</strong> for local commands."
+        : core
+          ? "Shared Second Brain connected. The Agent Core model is not configured yet" + (aiKey() ? ", so open-ended requests fall back to your browser AI key." : ".") + " Type <strong>help</strong> for local commands."
+          : aiKey()
+            ? "Local commands run first. Anything else goes to OpenAI with your own key (" + escapeHtml(aiModel()) + "), billed to your OpenAI account. Type <strong>help</strong> for commands."
+            : "Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.";
+    }
     const v = aiVerified();
     const badge = $("#aiConnBadge");
     if (badge) {
