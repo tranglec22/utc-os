@@ -172,3 +172,37 @@ only its explicit request text to the configured model. An internal
 handoff cannot authorize spending, publishing, sending messages to outsiders,
 deletion, or production deployment. The live `utc-os-app` Site remains
 unchanged until a separate verified integration.
+
+## Existing Cosmic Mothership: deployment boundaries
+
+The intended destination is the user's existing native ChatGPT Site:
+`https://cosmic-mothership.tranglec.chatgpt.site`.
+This is not a new Site or a Lovable deployment.
+
+An authenticated `GET /v1/status` reports `personaProfiles` with each
+role marked `loaded`, `generic`, or `unavailable`, plus `allLoaded`.
+`POST /v1/agent/respond` includes a `personaSource` field.
+
+Keep the five original setup files Margaret.md, Kara.md, Jarvis.md,
+Sauce_Sensei.md, Bastion.md and SHARED_BASE_RULES.md outside the public
+repo. Load them through the private server directory set in
+`UTCOS_AGENT_PROFILE_DIR`, and set `UTCOS_REQUIRE_AGENT_PROFILES=true`.
+A missing original profile then fails closed instead of impersonating it.
+
+The two consultation APIs accept `includeMemory: true` to include up to
+12 recent `public-safe` active Second Brain records from the requested
+workspace or `All work`. Defaults to false; never includes private or
+vault memory in workroom consultations. Successful replies report
+`memoryCount` to help verify the context actually supplied.
+
+The Mothership origin is permitted by CORS, but CORS does not grant
+authentication. The Site still needs an authorized server-side bridge.
+Never put the privileged `UTCOS_AGENT_CORE_KEY` in a public website,
+browser source, localStorage, or client bundle. The bridge must enforce
+individual user identity and workspace permission boundaries.
+
+The live-check workflow fails if verification secrets are missing and
+checks database, model configuration and all five original profiles.
+A passing readiness check cannot substitute for verifying five actual
+AI replies, memory persistence, handoffs, privacy and original Site
+regressions before publication.
