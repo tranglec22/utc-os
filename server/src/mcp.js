@@ -178,7 +178,8 @@ export function buildMcpServer(pool){
       threadId: z.string().uuid().optional(),
       workspace: z.string().default("All work"),
       sensitivity: z.enum(["public-safe","private"]).default("private"),
-      evidenceRefs: z.array(z.string()).max(20).default([])
+      evidenceRefs: z.array(z.string()).max(20).default([]),
+      includeMemory: z.boolean().default(false)
     })
   }, async (input) => {
     if (!pool) return { content: [{ type: "text", text: "Second Brain database is not configured." }], isError: true };
