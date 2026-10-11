@@ -127,3 +127,48 @@ Keep `UTCOS_BACKUP_KEY` separate from both the Agent Core bearer key and the Saf
 ## Live deployment verification
 
 `.github/workflows/agent-core-live-check.yml` runs a daily authenticated production check after deployment. It verifies `/ready` and `/v1/agents` with retries. Before the deployment secrets exist it exits safely instead of pretending the service is live.
+
+
+## Five-agent private workroom (proposed feature)
+
+This extension adds a recorded internal handoff/consultation mechanism. The
+five established agent IDs are \`margaret\`, \`kara\`, \`jarvis\`, \`sauce\`
+(Sauce Sensei), and \`bastion\`. Their original standalone GPT configuration
+packs remain in the UTC.OS Separate Agents Library folder; this backend
+change **does not** create or publish any GPT.
+
+Authenticated REST endpoints:
+- \`POST /v1/workroom/messages\` queues an internal handoff (202; not delivered).
+- \`POST /v1/workroom/consult\` invokes the named recipient once through the
+  existing configured model, then records its actual reply and delivery status.
+- \`GET /v1/workroom/threads/:threadId?workspace=All%20work\` returns its trail.
+
+The same operations are exposed through MCP tools \`post_agent_handoff\`,
+\`consult_agent\`, and \`read_agent_thread\`.
+
+Example JSON for \`/v1/workroom/consult\`:
+
+\`\`\`json
+{
+  "fromAgentId": "kara",
+  "toAgentId": "jarvis",
+  "content": "Review the Echo Trace install failure and propose the smallest safe fix.",
+  "workspace": "UTC.OS",
+  "sensitivity": "private",
+  "evidenceRefs": []
+}
+\`\`\`
+
+The first call creates a new thread UUID. Supply that \`threadId\` on
+subsequent handoffs to keep an audit trail. A model outage returns
+\`delivery: not_delivered\`; it never claims a response happened.
+
+**Security boundaries:** This is a single-owner backend with one privileged
+bearer key, not a per-user multi-tenant authorization system. Do not expose the
+key in a public site or browser bundle. Do not send raw transcripts,
+credentials, vault material, or unrelated private memories to the model.
+Workroom content is stored in PostgreSQL and a direct consultation sends
+only its explicit request text to the configured model. An internal
+handoff cannot authorize spending, publishing, sending messages to outsiders,
+deletion, or production deployment. The live \`utc-os-app\` Site remains
+unchanged until a separate verified integration.
