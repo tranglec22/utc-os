@@ -22,7 +22,7 @@ services:
       - key: UTCOS_VAULT_KEY
         generateValue: true
       - key: UTCOS_ALLOWED_ORIGINS
-        value: https://tranglec22.github.io,https://utc-os-app.tranglec.chatgpt.site
+        value: https://tranglec22.github.io,https://utc-os-app.tranglec.chatgpt.site,https://cosmic-mothership.tranglec.chatgpt.site
       - key: UTCOS_LLM_BASE_URL
         value: https://api.openai.com/v1
       - key: UTCOS_LLM_API_KEY
