@@ -86,13 +86,19 @@ export async function listWorkroomThread(pool, threadId, workspace = "All work")
 // No Second Brain memories, vault records, or credentials are automatically forwarded.
 export async function consultWorkroomAgent(pool, input, options = {}) {
   const request = await queueWorkroomMessage(pool, { ...input, purpose: "consult" });
-  const result = await callAgentLlm({
-    agent: AGENTS[request.to_agent],
-    messages: [{ role: "user", content: request.content }],
-    memoryContext: [],
-    ...(options.env ? { env: options.env } : {}),
-    ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {})
-  });
+  let result;
+  try {
+    result = await callAgentLlm({
+      agent: AGENTS[request.to_agent],
+      messages: [{ role: "user", content: request.content }],
+      memoryContext: [],
+      ...(options.env ? { env: options.env } : {}),
+      ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {})
+    });
+  } catch (_error) {
+    return { ok: false, threadId: request.thread_id, requestId: request.id,
+      delivery: "not_delivered", error: "Agent model connection failed", status: 502 };
+  }
 
   if (!result.ok) {
     return {
