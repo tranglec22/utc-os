@@ -206,3 +206,28 @@ checks database, model configuration and all five original profiles.
 A passing readiness check cannot substitute for verifying five actual
 AI replies, memory persistence, handoffs, privacy and original Site
 regressions before publication.
+
+
+### Real five-agent release smoke test (manual, opt-in)
+
+The scheduled Agent Core Live Check only checks readiness and credentials.
+The separate **manual** workflow dispatch also invokes `server/scripts/smoke-agents.mjs`.
+It deliberately costs six model calls and records one synthetic workroom
+consultation, so it does **not** run automatically on every push or schedule.
+Never print or commit the credentials.
+
+In an authorized operator environment:
+```bash
+UTCOS_RUN_LIVE_SMOKE_TEST=1 UTCOS_AGENT_CORE_URL="https://YOUR-PRIVATE-CORE" \
+ UTCOS_AGENT_CORE_KEY="<from secret store>" npm run smoke:live --prefix server
+```
+
+The smoke test fails unless the private deployment passes readiness, denies
+unauthenticated access, exposes all five agent IDs with loaded original profiles,
+returns a real model response for each role without private memory,
+and persists an actual Kara-to-Bastion consultation and reply. It does **not**
+prove Second Brain memory persistence, Site authentication/bridge integration,
+permissions across users, backup restoration, or production suitability.
+Check those separately with consent and a backup before enabling the existing
+ChatGPT Cosmic Mothership. Never put the privileged bearer key in public
+Site source or browser storage; keep it on an authenticated server-side bridge.
