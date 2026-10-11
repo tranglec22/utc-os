@@ -67,7 +67,9 @@ app.get("/ready", async (_req, res) => {
     ok: false,
     database: false,
     agentCoreKey: Boolean(process.env.UTCOS_AGENT_CORE_KEY),
-    vaultKey: vaultConfigured()
+    vaultKey: vaultConfigured(),
+    llm: llmConfig().ready,
+    personaProfiles: agentProfileStatus()
   };
   if (pool) {
     try {
@@ -77,7 +79,8 @@ app.get("/ready", async (_req, res) => {
       status.database = false;
     }
   }
-  status.ok = status.database && status.agentCoreKey && status.vaultKey;
+  status.ok = status.database && status.agentCoreKey && status.vaultKey && status.llm &&
+    (!status.personaProfiles.required || status.personaProfiles.allLoaded);
   res.status(status.ok ? 200 : 503).json(status);
 });
 
