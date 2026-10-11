@@ -30,3 +30,17 @@ jobs:
           node -e 'const x=JSON.parse(process.argv[1]);if(!x.database||!x.llm||!x.personaProfiles?.allLoaded)process.exit(1)' "$STATUS"
 
           echo "Agent Core live deployment verified."
+
+      # Explicit manual run only: calls the paid model six times and records one
+      # synthetic workroom consultation. Scheduled checks remain non-billable.
+      - name: Check out smoke test
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Run five real agent responses and one handoff
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          UTCOS_AGENT_CORE_URL: ${{ secrets.UTCOS_AGENT_CORE_URL }}
+          UTCOS_AGENT_CORE_KEY: ${{ secrets.UTCOS_AGENT_CORE_KEY }}
+          UTCOS_RUN_LIVE_SMOKE_TEST: "1"
+        run: node server/scripts/smoke-agents.mjs
