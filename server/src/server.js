@@ -7,6 +7,7 @@ import { createAgentCoreMcpHandler } from "./mcp.js";
 import { vaultConfigured, storeVaultEntry, readVaultEntry } from "./vault.js";
 import { assertNormalMemorySensitivity } from "./memory-policy.js";
 import { callAgentLlm, llmConfig } from "./llm.js";
+import { queueWorkroomMessage, consultWorkroomAgent, listWorkroomThread, WorkroomInputError } from "./workroom.js";
 
 const { Pool } = pg;
 const app = express();
@@ -173,6 +174,41 @@ app.post("/v1/agent/respond", requireKey, async (req, res) => {
       privateMemoryIncluded: includePrivate
     }
   });
+});
+
+// UTC.OS inter-agent workroom. All endpoints remain private and require the Agent Core key.
+// A queued handoff is not a delivered message. /consult invokes the recipient once.
+app.post("/v1/workroom/messages", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  try {
+    const message = await queueWorkroomMessage(pool, req.body || {});
+    res.status(202).json({ message, delivery: "queued" });
+  } catch (error) {
+    if (error instanceof WorkroomInputError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+});
+
+app.post("/v1/workroom/consult", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  try {
+    const result = await consultWorkroomAgent(pool, req.body || {});
+    res.status(result.ok ? 200 : result.status || 502).json(result);
+  } catch (error) {
+    if (error instanceof WorkroomInputError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+});
+
+app.get("/v1/workroom/threads/:threadId", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  try {
+    const messages = await listWorkroomThread(pool, req.params.threadId, req.query.workspace || "All work");
+    res.json({ threadId: req.params.threadId, messages });
+  } catch (error) {
+    if (error instanceof WorkroomInputError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
 });
 
 app.post("/v1/memory/remember", requireKey, async (req, res) => {
