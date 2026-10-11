@@ -86,12 +86,21 @@ export async function listWorkroomThread(pool, threadId, workspace = "All work")
 // No Second Brain memories, vault records, or credentials are automatically forwarded.
 export async function consultWorkroomAgent(pool, input, options = {}) {
   const request = await queueWorkroomMessage(pool, { ...input, purpose: "consult" });
+  // Opt-in to public-safe Second Brain entries in this workspace only.
+  let memoryContext = [];
+  if (input?.includeMemory === true) {
+    const q = await pool.query(
+      "SELECT title,detail FROM memories WHERE status='active' AND sensitivity='public-safe' AND (workspace=$1 OR workspace='All work') ORDER BY updated_at DESC LIMIT 12",
+      [request.workspace]
+    );
+    memoryContext = q.rows;
+  }
   let result;
   try {
     result = await callAgentLlm({
       agent: AGENTS[request.to_agent],
       messages: [{ role: "user", content: request.content }],
-      memoryContext: [],
+      memoryContext,
       ...(options.env ? { env: options.env } : {}),
       ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {})
     });
@@ -135,6 +144,7 @@ export async function consultWorkroomAgent(pool, input, options = {}) {
     response: q.rows[0],
     agent: AGENTS[request.to_agent],
     model: result.model,
+    memoryCount: memoryContext.length,
     delivery: "responded"
   };
 }
