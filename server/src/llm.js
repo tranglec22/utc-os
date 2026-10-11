@@ -48,7 +48,7 @@ export async function callAgentLlm({ agent, messages, memoryContext = [], fetchI
   }
 
   const memoryText = memoryContext.length
-    ? "\n\nSecond Brain context:\n" + memoryContext.map((m) => `- ${m.title}: ${m.detail}`).join("\n")
+    ? "\n\nSecond Brain context:\n" + memoryContext.slice(0, 30).map((m) => `- ${String(m.title || "").slice(0, 200)}: ${String(m.detail || "").slice(0, 1000)}`).join("\n")
     : "";
 
   const safeMessages = Array.isArray(messages)
