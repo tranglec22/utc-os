@@ -1,3 +1,4 @@
+import { loadAgentProfile, ProfileUnavailableError } from "./profiles.js";
 export function llmConfig(env = process.env) {
   const baseUrl = String(env.UTCOS_LLM_BASE_URL || "https://api.openai.com/v1").replace(/\/+$/, "");
   const apiKey = String(env.UTCOS_LLM_API_KEY || "");
@@ -11,7 +12,7 @@ export function llmConfig(env = process.env) {
   };
 }
 
-export function agentInstructions(agent) {
+export function agentInstructions(agent, profile = null) {
   return [
     `You are ${agent.name}, part of the UTC.OS Agent Core.`,
     `Role: ${agent.role}.`,
@@ -23,7 +24,10 @@ export function agentInstructions(agent) {
     "If evidence conflicts, call out the conflict instead of silently choosing a version.",
     "Do not claim an external action happened unless the caller provides evidence it completed.",
     "Bastion is the truth/security gate; security-sensitive uncertainty should be routed or flagged for Bastion.",
-    "Keep answers concise and action-oriented."
+    "Keep answers concise and action-oriented.",
+    "The user is the final authority. Internal agent consultations do not authorize external actions.",
+    profile?.loaded ? "\n## Original agent identity and operating instructions\n" + profile.instructions : "",
+    profile?.loaded ? "\n## Shared UTC.OS operating rules\n" + profile.sharedRules : ""
   ].filter(Boolean).join("\n");
 }
 
@@ -33,8 +37,18 @@ export async function callAgentLlm({ agent, messages, memoryContext = [], fetchI
     return { ok: false, status: 503, error: "Agent Core LLM is not configured" };
   }
 
+  let profile;
+  try {
+    profile = loadAgentProfile(agent.id, env);
+  } catch (error) {
+    if (error instanceof ProfileUnavailableError) {
+      return { ok: false, status: 503, error: "Original agent profile is unavailable" };
+    }
+    throw error;
+  }
+
   const memoryText = memoryContext.length
-    ? "\n\nSecond Brain context:\n" + memoryContext.map((m) => `- ${m.title}: ${m.detail}`).join("\n")
+    ? "\n\nSecond Brain context:\n" + memoryContext.slice(0, 30).map((m) => `- ${String(m.title || "").slice(0, 200)}: ${String(m.detail || "").slice(0, 1000)}`).join("\n")
     : "";
 
   const safeMessages = Array.isArray(messages)
@@ -54,7 +68,7 @@ export async function callAgentLlm({ agent, messages, memoryContext = [], fetchI
     body: JSON.stringify({
       model: cfg.model,
       messages: [
-        { role: "system", content: agentInstructions(agent) + memoryText },
+        { role: "system", content: agentInstructions(agent, profile) + memoryText },
         ...safeMessages
       ],
       temperature: 0.4
@@ -77,6 +91,7 @@ export async function callAgentLlm({ agent, messages, memoryContext = [], fetchI
   return {
     ok: true,
     text: text.trim(),
+    profile: profile.source,
     model: body?.model || cfg.model
   };
 }

@@ -4,6 +4,7 @@ import { AGENTS, routeAgent } from "./agents.js";
 import { reviewIngestion } from "./bastion.js";
 import { assertNormalMemorySensitivity } from "./memory-policy.js";
 import { vaultConfigured, storeVaultEntry } from "./vault.js";
+import { queueWorkroomMessage, consultWorkroomAgent, listWorkroomThread } from "./workroom.js";
 
 export function buildMcpServer(pool){
   const server=new McpServer({name:"utcos-agent-core",version:"1.0.0"},{capabilities:{tools:{}}});
@@ -144,6 +145,63 @@ export function buildMcpServer(pool){
     const entry=await storeVaultEntry(pool,process.env.UTCOS_VAULT_KEY,{...input,createdBy:"mcp-agent"});
     await pool.query("INSERT INTO agent_events(agent_id,event_type,payload) VALUES('bastion','vault.store.mcp',$1::jsonb)",[JSON.stringify({id:entry.id,title:entry.title,workspace:entry.workspace})]);
     return {content:[{type:"text",text:JSON.stringify(entry)}]};
+  });
+
+  server.registerTool("post_agent_handoff", {
+    description: "Queue an internal handoff to a different UTC.OS agent. Queued is NOT delivered.",
+    inputSchema: z.object({
+      fromAgentId: z.string().default("kara"),
+      toAgentId: z.string(),
+      purpose: z.enum(["consult","handoff","review","status"]).default("handoff"),
+      content: z.string().min(1).max(10000),
+      threadId: z.string().uuid().optional(),
+      workspace: z.string().default("All work"),
+      sensitivity: z.enum(["public-safe","private"]).default("private"),
+      evidenceRefs: z.array(z.string()).max(20).default([])
+    })
+  }, async (input) => {
+    if (!pool) return { content: [{ type: "text", text: "Second Brain database is not configured." }], isError: true };
+    try {
+      const message = await queueWorkroomMessage(pool, input);
+      return { content: [{ type: "text", text: JSON.stringify({ delivery: "queued", message }) }] };
+    } catch (error) {
+      return { content: [{ type: "text", text: error.message }], isError: true };
+    }
+  });
+
+  server.registerTool("consult_agent", {
+    description: "Invoke one UTC.OS agent once, save the request and actual response in the private workroom. Does not authorize outside actions.",
+    inputSchema: z.object({
+      fromAgentId: z.string().default("kara"),
+      toAgentId: z.string(),
+      content: z.string().min(1).max(10000),
+      threadId: z.string().uuid().optional(),
+      workspace: z.string().default("All work"),
+      sensitivity: z.enum(["public-safe","private"]).default("private"),
+      evidenceRefs: z.array(z.string()).max(20).default([]),
+      includeMemory: z.boolean().default(false)
+    })
+  }, async (input) => {
+    if (!pool) return { content: [{ type: "text", text: "Second Brain database is not configured." }], isError: true };
+    try {
+      const result = await consultWorkroomAgent(pool, input);
+      return { content: [{ type: "text", text: JSON.stringify(result) }], isError: !result.ok };
+    } catch (error) {
+      return { content: [{ type: "text", text: error.message }], isError: true };
+    }
+  });
+
+  server.registerTool("read_agent_thread", {
+    description: "Read a private, workspace-scoped UTC.OS agent handoff trail (up to 100 messages)",
+    inputSchema: z.object({ threadId: z.string().uuid(), workspace: z.string().default("All work") })
+  }, async ({ threadId, workspace }) => {
+    if (!pool) return { content: [{ type: "text", text: "Second Brain database is not configured." }], isError: true };
+    try {
+      const messages = await listWorkroomThread(pool, threadId, workspace);
+      return { content: [{ type: "text", text: JSON.stringify({ threadId, messages }) }] };
+    } catch (error) {
+      return { content: [{ type: "text", text: error.message }], isError: true };
+    }
   });
 
   return server;

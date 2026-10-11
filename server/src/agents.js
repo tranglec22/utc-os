@@ -61,6 +61,16 @@ const ROUTE_ORDER = [
 
 export function routeAgent(input = "") {
   const text = String(input).toLowerCase();
+  // An explicit named agent wins over broad topic-based routing.
+  for (const [pattern, id] of [
+    [/\bmargaret\b/, "margaret"],
+    [/\bkara\b/, "kara"],
+    [/\bjarvis\b/, "jarvis"],
+    [/\b(?:sauce[\s-]*sensei|sauce)\b/, "sauce"],
+    [/\bbastion\b/, "bastion"]
+  ]) {
+    if (pattern.test(text)) return AGENTS[id];
+  }
   for (const [needle, id] of ROUTE_ORDER) {
     if (text.includes(needle)) return AGENTS[id];
   }

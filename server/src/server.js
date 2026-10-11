@@ -1,3 +1,4 @@
+import { agentProfileStatus } from "./profiles.js";
 import express from "express";
 import pg from "pg";
 import { AGENTS, routeAgent } from "./agents.js";
@@ -7,13 +8,15 @@ import { createAgentCoreMcpHandler } from "./mcp.js";
 import { vaultConfigured, storeVaultEntry, readVaultEntry } from "./vault.js";
 import { assertNormalMemorySensitivity } from "./memory-policy.js";
 import { callAgentLlm, llmConfig } from "./llm.js";
+import { queueWorkroomMessage, consultWorkroomAgent, listWorkroomThread, WorkroomInputError } from "./workroom.js";
 
 const { Pool } = pg;
 const app = express();
 
 const defaultOrigins = [
   "https://tranglec22.github.io",
-  "https://utc-os-app.tranglec.chatgpt.site"
+  "https://utc-os-app.tranglec.chatgpt.site",
+  "https://cosmic-mothership.tranglec.chatgpt.site"
 ];
 const configuredOrigins = String(process.env.UTCOS_ALLOWED_ORIGINS || "")
   .split(",")
@@ -64,7 +67,9 @@ app.get("/ready", async (_req, res) => {
     ok: false,
     database: false,
     agentCoreKey: Boolean(process.env.UTCOS_AGENT_CORE_KEY),
-    vaultKey: vaultConfigured()
+    vaultKey: vaultConfigured(),
+    llm: llmConfig().ready,
+    personaProfiles: agentProfileStatus()
   };
   if (pool) {
     try {
@@ -74,7 +79,8 @@ app.get("/ready", async (_req, res) => {
       status.database = false;
     }
   }
-  status.ok = status.database && status.agentCoreKey && status.vaultKey;
+  status.ok = status.database && status.agentCoreKey && status.vaultKey && status.llm &&
+    (!status.personaProfiles.required || status.personaProfiles.allLoaded);
   res.status(status.ok ? 200 : 503).json(status);
 });
 
@@ -109,6 +115,7 @@ app.get("/v1/status", requireKey, async (_req, res) => {
     vault: vaultConfigured(),
     llm: llmConfig().ready,
     privateLlmContext: llmConfig().allowPrivateMemory,
+    personaProfiles: agentProfileStatus(),
     agents: Object.keys(AGENTS)
   });
 });
@@ -157,6 +164,7 @@ app.post("/v1/agent/respond", requireKey, async (req, res) => {
       workspace,
       ok: result.ok,
       model: result.model || null,
+      personaSource: result.profile || null,
       privateMemoryIncluded: includePrivate,
       memoryCount: memories.rowCount
     })]
@@ -167,12 +175,48 @@ app.post("/v1/agent/respond", requireKey, async (req, res) => {
     agent,
     reply: result.text,
     model: result.model,
+    personaSource: result.profile,
     context: {
       workspace,
       memoryCount: memories.rowCount,
       privateMemoryIncluded: includePrivate
     }
   });
+});
+
+// UTC.OS inter-agent workroom. All endpoints remain private and require the Agent Core key.
+// A queued handoff is not a delivered message. /consult invokes the recipient once.
+app.post("/v1/workroom/messages", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  try {
+    const message = await queueWorkroomMessage(pool, req.body || {});
+    res.status(202).json({ message, delivery: "queued" });
+  } catch (error) {
+    if (error instanceof WorkroomInputError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+});
+
+app.post("/v1/workroom/consult", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  try {
+    const result = await consultWorkroomAgent(pool, req.body || {});
+    res.status(result.ok ? 200 : result.status || 502).json(result);
+  } catch (error) {
+    if (error instanceof WorkroomInputError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+});
+
+app.get("/v1/workroom/threads/:threadId", requireKey, async (req, res) => {
+  if (!requireDb(res)) return;
+  try {
+    const messages = await listWorkroomThread(pool, req.params.threadId, req.query.workspace || "All work");
+    res.json({ threadId: req.params.threadId, messages });
+  } catch (error) {
+    if (error instanceof WorkroomInputError) return res.status(400).json({ error: error.message });
+    throw error;
+  }
 });
 
 app.post("/v1/memory/remember", requireKey, async (req, res) => {
