@@ -14,7 +14,8 @@ const app = express();
 
 const defaultOrigins = [
   "https://tranglec22.github.io",
-  "https://utc-os-app.tranglec.chatgpt.site"
+  "https://utc-os-app.tranglec.chatgpt.site",
+  "https://cosmic-mothership.tranglec.chatgpt.site"
 ];
 const configuredOrigins = String(process.env.UTCOS_ALLOWED_ORIGINS || "")
   .split(",")
