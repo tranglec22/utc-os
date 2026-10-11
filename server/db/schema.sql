@@ -72,3 +72,24 @@ CREATE TABLE IF NOT EXISTS vault_entries (
 );
 
 CREATE INDEX IF NOT EXISTS vault_entries_workspace_idx ON vault_entries(workspace) WHERE deleted_at IS NULL;
+
+
+-- Five-agent workroom: append-only handoff trail with explicit reply status.
+-- Only the existing private Agent Core bearer token can access its API.
+CREATE TABLE IF NOT EXISTS agent_workroom_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id UUID NOT NULL,
+  from_agent TEXT NOT NULL CHECK (from_agent IN ('margaret','kara','jarvis','sauce','bastion')),
+  to_agent TEXT NOT NULL CHECK (to_agent IN ('margaret','kara','jarvis','sauce','bastion')),
+  purpose TEXT NOT NULL CHECK (purpose IN ('consult','handoff','review','status')),
+  content TEXT NOT NULL,
+  workspace TEXT NOT NULL DEFAULT 'All work',
+  sensitivity TEXT NOT NULL DEFAULT 'private' CHECK (sensitivity IN ('public-safe','private')),
+  evidence_refs JSONB NOT NULL DEFAULT '[]'::jsonb,
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','answered','recorded')),
+  reply_to UUID REFERENCES agent_workroom_messages(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  responded_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS agent_workroom_thread_idx
+  ON agent_workroom_messages(thread_id, workspace, created_at);
