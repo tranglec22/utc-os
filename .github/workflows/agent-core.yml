@@ -91,6 +91,16 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"agentId":"kara","message":"Plan the next move","workspace":"All work","history":[]}')
           node -e 'const x=JSON.parse(process.argv[1]); if(x.reply!=="Agent runtime alive."||x.agent.id!=="kara") process.exit(1)' "$AGENT"
+          # Store a synthetic public-safe memory, verify opt-in consultation reads it.
+          curl -fsS -X POST http://127.0.0.1:8787/v1/memory/remember \
+            -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"title":"CI Site safety","detail":"Preserve existing ChatGPT Site","workspace":"UTC.OS","sensitivity":"public-safe"}' >/dev/null
+          MEMORY_WORKROOM=$(curl -fsS -X POST http://127.0.0.1:8787/v1/workroom/consult \
+            -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"fromAgentId":"kara","toAgentId":"sauce","content":"Review the Mothership interface","workspace":"UTC.OS","includeMemory":true}')
+          node -e 'const x=JSON.parse(process.argv[1]);if(!x.ok||x.delivery!=="responded"||x.memoryCount!==1||x.agent.id!=="sauce")process.exit(1)' "$MEMORY_WORKROOM"
           # Real workroom round trip against PostgreSQL and the deterministic mock model.
           WORKROOM=$(curl -fsS -X POST http://127.0.0.1:8787/v1/workroom/consult \
             -H "Authorization: Bearer $UTCOS_AGENT_CORE_KEY" \
