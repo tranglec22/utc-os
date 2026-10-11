@@ -1,3 +1,4 @@
+import { agentProfileStatus } from "./profiles.js";
 import express from "express";
 import pg from "pg";
 import { AGENTS, routeAgent } from "./agents.js";
@@ -111,6 +112,7 @@ app.get("/v1/status", requireKey, async (_req, res) => {
     vault: vaultConfigured(),
     llm: llmConfig().ready,
     privateLlmContext: llmConfig().allowPrivateMemory,
+    personaProfiles: agentProfileStatus(),
     agents: Object.keys(AGENTS)
   });
 });
@@ -159,6 +161,7 @@ app.post("/v1/agent/respond", requireKey, async (req, res) => {
       workspace,
       ok: result.ok,
       model: result.model || null,
+      personaSource: result.profile || null,
       privateMemoryIncluded: includePrivate,
       memoryCount: memories.rowCount
     })]
@@ -169,6 +172,7 @@ app.post("/v1/agent/respond", requireKey, async (req, res) => {
     agent,
     reply: result.text,
     model: result.model,
+    personaSource: result.profile,
     context: {
       workspace,
       memoryCount: memories.rowCount,
