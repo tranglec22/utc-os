@@ -361,13 +361,16 @@
     });
     $("#approvalDialog").addEventListener("close", () => { if (priorFocus?.isConnected) priorFocus.focus(); });
   }
-  if (new URLSearchParams(location.search).has("embedded")) {
-    document.body.classList.add("embedded");
+  const query = new URLSearchParams(location.search);
+  if (query.has("embedded")) document.body.classList.add("embedded");
+  if (["inbox", "calendar", "backlog", "history"].includes(query.get("tab"))) {
+    activeTab = query.get("tab");
   }
   restore();
   renderConcepts();
   render();
   bind();
+  if (query.has("review") && entries("pending").length) openReview(0);
   if (!localStore) notify("Local storage unavailable. These drafts will not persist.");
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   $("#dateHint").textContent = "Planning only · " + (tz || "device local time") + ". No platform scheduling connected.";
