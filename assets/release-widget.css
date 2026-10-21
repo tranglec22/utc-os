@@ -1,0 +1,63 @@
+/* Optional Lil Wiznap release widget in the existing UTC.OS reconstruction shell.
+   This stylesheet intentionally scopes all rules to release-hub elements. */
+.release-hub{
+  margin:16px 0 20px;
+  padding:22px;
+  position:relative;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(140,66,210,.24),transparent 50%),
+    linear-gradient(135deg,#23132f,#12101c 65%)!important;
+  border:1px solid rgba(196,153,86,.6)!important;
+  box-shadow:0 5px 32px #7c3aed22;
+}
+.release-hub::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,#daa954,#b071f1,#5034b9);
+}
+.release-hub-header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:17px}
+.release-hub-header h2{font-family:var(--serif,Georgia,serif);font-size:clamp(25px,4vw,37px);line-height:1.1;color:#f7eada;margin:9px 0 5px}
+.release-hub-header p{font-size:12px;line-height:1.5;color:#bcb0c5;max-width:390px}
+.release-hub-sigil{font:bold 50px Georgia,serif;color:#e8bc6b;display:grid;place-items:center;width:76px;height:76px;flex-shrink:0;border:1px solid #a77f51;border-radius:100%;box-shadow:inset 0 0 24px #6930ac91,0 0 20px #6930ac33;transform:rotate(-10deg)}
+.release-hub-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:14px}
+.release-hub-metric{min-width:0;padding:14px 10px;background:rgba(8,7,15,.6);border:1px solid #4e3760;border-radius:12px}
+.release-hub-metric strong{display:block;font-size:27px;line-height:1.2;color:#e0b86a}
+.release-hub-metric span{display:block;font-size:10px;line-height:1.5;color:#aeb0bf}
+.release-hub-next{display:flex;align-items:center;gap:11px;min-height:70px;border-radius:11px;border:1px solid #654a73;background:rgba(14,11,24,.88);padding:11px 13px;margin:10px 0 13px;font-size:12px;color:#decfdc;line-height:1.55}
+.release-hub-next strong{color:#f5e6b6}.release-hub-next em{font-style:normal;color:#bba6cf}
+.release-hub-next-icon{display:grid;place-items:center;width:33px;height:33px;border-radius:10px;background:#342044;flex:none;font-size:16px}
+.release-hub-actions{display:grid;grid-template-columns:1.4fr 1.25fr .8fr;gap:8px}
+.release-hub-actions .btn{font-size:11px;line-height:1.35;border-radius:10px;padding:10px 9px;display:flex;align-items:center;justify-content:center;text-decoration:none;min-height:42px;min-width:0;white-space:normal}
+.release-hub-actions #releaseHubApprove{position:relative}
+.release-hub-actions #releaseHubButtonCount{background:#0c0818;color:#f0bd67;display:inline-grid;place-items:center;margin-left:8px;padding:1px 7px;min-width:21px;border-radius:50px;font-weight:800}
+.release-hub-disclaimer{margin-top:12px!important;color:#a99aac!important;font-size:10px!important;line-height:1.6!important}
+.release-notification-button{position:relative}
+.release-notification-count{position:absolute;right:-4px;top:-5px;font-size:10px;color:#1b1025;background:#e5bf70;border-radius:25px;min-width:18px;line-height:18px;padding:0 3px;font-weight:900;text-align:center;box-shadow:0 0 10px #bb853844}
+.release-notification-count[data-zero=true]{background:#342b44;color:#aa96b8;box-shadow:none}
+.release-hub-dialog{position:fixed;inset:0;margin:auto;background:#110e1c;color:#f4edf5;border:1px solid #8b669d;border-radius:18px;padding:0;width:min(910px,calc(100% - 26px));height:min(88dvh,830px);max-width:none;max-height:none;box-shadow:0 22px 90px #000d;overflow:hidden}
+.release-hub-dialog::backdrop{background:rgba(2,0,6,.86);backdrop-filter:blur(8px)}
+.release-hub-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:15px 19px;border-bottom:1px solid #513c60;background:#1c1428;min-height:83px}
+.release-hub-dialog-head h2{font:600 27px Georgia,serif;line-height:1.2;margin:4px 0}
+.release-hub-dialog-head p{font-size:11px;color:#aa9eb6;line-height:1.5;margin:0}
+.release-hub-close{border:1px solid #684779;background:#1f162b;border-radius:9px;color:#faf2e6;font-size:25px;line-height:1;min-width:40px;min-height:40px}
+.release-hub-dialog iframe{display:block;border:0;width:100%;height:calc(100% - 143px);background:#0d0915}
+.release-hub-dialog-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 19px;border-top:1px solid #4e395b;font-size:11px;line-height:1.45}
+.release-hub-dialog-foot a{color:#dfbc77}.release-hub-dialog-foot span{color:#a9a1b1}
+@media(max-width:480px){
+  .release-hub{padding:16px}
+  .release-hub-sigil{width:52px;height:52px;font-size:33px}
+  .release-hub-header h2{font-size:29px}
+  .release-hub-header p{font-size:11px}
+  .release-hub-metrics{gap:6px}
+  .release-hub-metric{padding:11px 7px}
+  .release-hub-metric strong{font-size:23px}
+  .release-hub-metric span{font-size:9px}
+  .release-hub-actions{grid-template-columns:1fr 1fr}
+  .release-hub-actions #releaseHubApprove{grid-column:span 2}
+  .release-hub-dialog{inset:auto 0 0 0;margin:0;width:100%;height:94dvh;border-radius:20px 20px 0 0}
+  .release-hub-dialog-head{padding:12px 13px;min-height:90px}
+  .release-hub-dialog iframe{height:calc(100% - 150px)}
+  .release-hub-dialog-foot{padding:10px 13px;font-size:10px}
+  .release-hub-dialog-foot span{max-width:145px;text-align:right}
+}
+@media(prefers-reduced-motion:reduce){.release-hub,.release-hub *{scroll-behavior:auto}}
