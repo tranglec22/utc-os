@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090711">
+  <meta name="description" content="Lil Wiznap Release Command: local draft, creative concept, and approval workspace inside the UTC.OS reconstruction shell.">
+  <title>Lil Wiznap · Release Command | UTC.OS</title>
+  <link rel="stylesheet" href="assets/release-command.css">
+  <script src="assets/release-command.js" defer></script>
+</head>
+<body>
+<div class="release-app" id="releaseApp">
+  <header class="topbar">
+    <a href="./index.html#home" class="brand" aria-label="UTC.OS home"><span class="brand-symbol">✦</span><span>UTC.OS <small>/ LIL WIZNAP</small></span></a>
+    <div class="topbar-right">
+      <span class="local-indicator" title="Drafts live only in this browser. No platform API is attached.">● LOCAL WORKSPACE</span>
+      <button type="button" class="btn btn-compact btn-primary" id="openInbox">🔔 Approval Needed <span id="pendingCount">0</span></button>
+    </div>
+  </header>
+
+  <div class="content-wrap">
+    <div class="eyebrow">MOTHERSHIP / CREATIVE OPERATIONS</div>
+    <section class="hero">
+      <div>
+        <div class="hero-overline">SAUCE SENSEI × KARA × JARVIS</div>
+        <h1>RELEASE <em>COMMAND</em></h1>
+        <p>From the studio to the feed. Build a campaign, select a look, and approve each channel without losing the backlog.</p>
+        <div class="hero-stats" aria-label="Local campaign totals">
+          <div><strong id="heroCampaigns">0</strong><span>Draft campaigns</span></div>
+          <div><strong id="heroPending">0</strong><span>Awaiting decisions</span></div>
+          <div><strong id="heroBacklog">0</strong><span>Backlogged</span></div>
+        </div>
+      </div>
+      <div class="hero-mark" aria-hidden="true"><span>W</span><small>THE DOJO</small></div>
+    </section>
+
+    <div class="truth-notice" role="status"><span aria-hidden="true">ⓘ</span>
+      <div><strong>Draft workspace, not a connected publisher.</strong> Concepts are editable starter templates. Decisions save to this device only; selecting Yes does not schedule, upload, or publish a post. Live platform connections and AI asset generation are not wired here.</div>
+    </div>
+
+    <div class="workspace-grid">
+      <section class="panel create-panel" aria-labelledby="createTitle">
+        <div class="panel-heading">
+          <div><div class="eyebrow">01 / START HERE</div><h2 id="createTitle">New release</h2></div>
+          <span class="pill">LOCAL DRAFT</span>
+        </div>
+        <form id="releaseForm">
+          <label class="field">Track title
+            <input id="trackTitle" name="trackTitle" type="text" maxlength="120" required placeholder="e.g. Namaste" autocomplete="off">
+          </label>
+          <div class="two-col">
+            <label class="field">Release type
+              <select id="releaseType" name="releaseType">
+                <option value="teaser">Teaser / preview</option>
+                <option value="full">Full track launch</option>
+                <option value="battle">VS battle</option>
+              </select>
+            </label>
+            <label class="field">Proposed date &amp; time
+              <input id="releaseDate" name="releaseDate" type="datetime-local" aria-describedby="dateHint">
+            </label>
+          </div>
+          <p id="dateHint" class="field-help">Planning only. Times are interpreted in your device’s local time zone.</p>
+          <fieldset class="channels">
+            <legend>Prepare platform-specific drafts</legend>
+            <div class="channel-grid">
+              <label><input type="checkbox" name="channels" value="facebook" checked><span class="channel-icon">f</span>Facebook</label>
+              <label><input type="checkbox" name="channels" value="tiktok" checked><span class="channel-icon">♪</span>TikTok</label>
+              <label><input type="checkbox" name="channels" value="youtube" checked><span class="channel-icon">▶</span>YouTube</label>
+              <label><input type="checkbox" name="channels" value="instagram" checked><span class="channel-icon">◎</span>Instagram</label>
+              <label><input type="checkbox" name="channels" value="snapchat" checked><span class="channel-icon">◉</span>Snapchat</label>
+            </div>
+          </fieldset>
+
+          <label class="field">Attach a preview from this device (optional)
+            <input type="file" id="previewFile" accept="audio/*,video/*,image/*" aria-describedby="assetHint">
+          </label>
+          <p id="assetHint" class="field-help">Preview stays in this browser session only. Files are not uploaded or retained after refresh.</p>
+
+          <div class="concept-heading"><div><div class="eyebrow">02 / CREATIVE DIRECTION</div><h3>Choose the energy</h3></div>
+            <button type="button" class="btn btn-ghost btn-compact" id="surpriseMe">✦ Surprise Me</button>
+          </div>
+          <div class="concept-list" id="conceptList" role="group" aria-label="Five creative campaign concepts"></div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-full">Create campaign drafts ↗</button>
+            <button type="button" id="loadDemo" class="btn btn-muted">Try a clearly labeled demo</button>
+          </div>
+          <p id="formMessage" class="form-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="panel queue-panel" aria-labelledby="queueTitle">
+        <div class="panel-heading">
+          <div><div class="eyebrow">03 / YOUR PIPELINE</div><h2 id="queueTitle">Review center</h2></div>
+          <button type="button" class="btn btn-outline btn-compact" id="quickReview">Quick review ↗</button>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Release dashboard tabs">
+          <button type="button" data-tab="inbox" role="tab" aria-selected="true">Pending</button>
+          <button type="button" data-tab="calendar" role="tab" aria-selected="false">Calendar</button>
+          <button type="button" data-tab="backlog" role="tab" aria-selected="false">Backlog</button>
+          <button type="button" data-tab="history" role="tab" aria-selected="false">History</button>
+        </div>
+        <div id="queueContent" aria-live="polite"></div>
+        <div class="queue-footnote">Every approval is per platform. Backlogging one channel never changes the others.</div>
+      </section>
+    </div>
+    <footer>UTC.OS reconstruction shell · local-first prototype · no posting permissions connected · <a href="./index.html#home">Back to Mothership</a></footer>
+  </div>
+
+  <dialog id="approvalDialog" aria-labelledby="approvalDialogTitle">
+    <div class="dialog-head">
+      <div><div class="eyebrow">ONE DECISION AT A TIME</div><h2 id="approvalDialogTitle">Approval needed</h2><p id="dialogProgress" class="muted"></p></div>
+      <button type="button" class="close-icon" id="closeDialog" aria-label="Close approval popup">×</button>
+    </div>
+    <div id="dialogBody"></div>
+    <div class="dialog-foot">
+      <button type="button" class="btn btn-muted" id="prevApproval">← Previous</button>
+      <button type="button" class="btn btn-muted" id="nextApproval">Next →</button>
+    </div>
+  </dialog>
+  <div id="notice" class="toast" role="status" aria-live="polite" hidden></div>
+</div>
+</body>
+</html>
