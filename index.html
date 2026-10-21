@@ -28,6 +28,9 @@
           <div class="world-chip" id="worldChip">UP2CODE</div>
         </div>
         <div class="header-actions">
+          <button type="button" class="icon-btn release-notification-button" id="releaseNotifBtn" title="Release approvals" aria-label="Open release approvals">
+            <span aria-hidden="true">🔔</span><span id="releaseNotifCount" class="release-notification-count">0</span>
+          </button>
           <button type="button" class="icon-btn" id="btnSearch" title="Search" aria-label="Search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
           </button>
@@ -136,6 +139,37 @@
             <p class="small dim">Distribution / Fan network — Coming soon</p>
             <button type="button" class="btn btn-outline btn-block" style="margin-top:10px" data-nav="specialist/sauce-sensei">Open Sauce Sensei module</button>
           </div>
+
+
+          <!-- Lil Wiznap Release Command: local draft status, no external publishing -->
+          <section class="card release-hub" id="releaseHub" aria-labelledby="releaseHubTitle">
+            <div class="release-hub-header">
+              <div>
+                <div class="section-label">LIL WIZNAP · RELEASE COMMAND <span class="demo-badge">Local draft</span></div>
+                <h2 id="releaseHubTitle">Your release cockpit</h2>
+                <p>Fast-track a track, clear approvals, and see what needs your attention.</p>
+              </div>
+              <div class="release-hub-sigil" aria-hidden="true">W</div>
+            </div>
+
+            <div class="release-hub-metrics" role="group" aria-label="Release draft status">
+              <div class="release-hub-metric"><strong id="releaseHubPending">0</strong><span>Needs approval</span></div>
+              <div class="release-hub-metric"><strong id="releaseHubBacklog">0</strong><span>Backlog</span></div>
+              <div class="release-hub-metric"><strong id="releaseHubCampaigns">0</strong><span>Draft campaigns</span></div>
+            </div>
+
+            <div class="release-hub-next" id="releaseHubNext" aria-live="polite">
+              <span class="release-hub-next-icon" aria-hidden="true">🔔</span>
+              <span>No approvals waiting. Start a release to generate platform drafts.</span>
+            </div>
+
+            <div class="release-hub-actions">
+              <button type="button" class="btn btn-gold" id="releaseHubApprove">🔔 Quick approvals <span id="releaseHubButtonCount">0</span></button>
+              <a class="btn btn-outline" href="release-command.html">✦ Open Release Portal</a>
+              <a class="btn btn-ghost" href="release-command.html?tab=calendar">📅 Calendar</a>
+            </div>
+            <p class="release-hub-disclaimer">Approvals are local draft decisions, not published posts. Connections and real scheduling are not wired in this reconstruction shell.</p>
+          </section>
 
           <div class="card">
             <div class="section-label">Second Brain <span class="demo-badge">Fixture</span></div>
@@ -1008,6 +1042,15 @@
       <button type="button" class="dismiss" id="toastDismiss">Dismiss</button>
     </div>
 
+    <dialog class="release-hub-dialog" id="releaseHubDialog" aria-labelledby="releaseHubDialogTitle">
+      <div class="release-hub-dialog-head">
+        <div><div class="section-label">LIL WIZNAP · QUICK PORTAL</div><h2 id="releaseHubDialogTitle">Approval Needed</h2><p>Review each platform separately. Yes, No, or Backlog.</p></div>
+        <button type="button" id="releaseHubClose" class="release-hub-close" aria-label="Close release approvals">×</button>
+      </div>
+      <iframe id="releaseHubFrame" title="Release Command quick approvals" loading="lazy" referrerpolicy="same-origin"></iframe>
+      <div class="release-hub-dialog-foot"><a href="release-command.html">Open full release workspace ↗</a><span>Device-local prototype · no auto-publishing</span></div>
+    </dialog>
+
     <div class="dialog-backdrop" id="leadDialog" role="dialog" aria-modal="true" aria-labelledby="leadDialogTitle">
       <div class="dialog">
         <div class="dialog-header">
@@ -1022,6 +1065,8 @@
     </div>
   </div>
 
+  <link rel="stylesheet" href="assets/release-widget.css" />
   <script src="assets/app.js"></script>
+  <script src="assets/release-widget.js"></script>
 </body>
 </html>
