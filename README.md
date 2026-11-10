@@ -1,4 +1,14 @@
-# UTC.OS Reconstruction Shell — Phase 7
+# UTC.OS Reconstruction Shell — Phase 8
+
+## Phase 8: Mothership Command dock + Job Radar freshness
+
+- **Dock fits phones.** The Mothership Command dock was wider than a phone screen, which pushed **Send**, the minimize button and **Open full chat** off the right edge. It now stays inside the screen and the agent chips scroll sideways.
+- **Minimize is remembered.** The dock keeps its open/minimized state between visits (`utcos-shell:dockCollapsed`). Press `/` or `Ctrl/Cmd+K` anywhere to open it and start typing.
+- **Dock replies wait for the real answer.** Agent Core / AI replies used to be read after a fixed 0.8 seconds, so slower answers left the dock stuck on "is handling that…". The dock now updates whenever the reply lands.
+- **Job Radar knows about deadlines.** A lead with a passed deadline (explicit ISO `deadline`, or a written date in a deadline-style `timeline`) is dimmed, labelled "Deadline passed" and sorted below open work. `scripts/job-radar.mjs` now asks for a `deadlineDate` and writes it as `deadline`.
+- **Stale-feed warning.** If `data/job-radar.json` is more than 7 days old, Lead Center says so instead of presenting old listings as current. The six-hourly refresh still needs the `XAI_API_KEY` repository secret.
+- Lead detail no longer labels verified radar leads as "Demo data".
+- Service worker cache bumped to `utcos-shell-v9` so installed copies pick up the update.
 
 ## Phase 7: Second Brain + Job Radar bridge
 

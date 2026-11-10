@@ -52,6 +52,7 @@ Return ONLY valid JSON in this shape:
     "sourceUrl":"https://...",
     "posted":"YYYY-MM-DD or null",
     "deadline":"short text or null",
+    "deadlineDate":"YYYY-MM-DD or null (exact bid/application due date when the source states one)",
     "radarNotes":"what was verified and any gating requirement",
     "whyFits":"...",
     "followUp":"review/verification step, not an automatic send"
@@ -127,7 +128,9 @@ for (const x of raw) {
     radarNotes:String(x.radarNotes||"").slice(0,1200),
     whyFits:String(x.whyFits||"").slice(0,900),
     followUp:String(x.followUp||"Review the public source before acting.").slice(0,900),
-    timeline:String(x.deadline||x.posted||"Current posting").slice(0,300),
+    timeline:String(x.deadline ? "Deadline " + String(x.deadline).replace(/^deadline:?\s*/i,"") : x.posted||"Current posting").slice(0,300),
+    // Machine-readable due date: the UI uses it to flag opportunities whose deadline has passed.
+    ...(/^\d{4}-\d{2}-\d{2}$/.test(String(x.deadlineDate||"")) ? { deadline: x.deadlineDate + "T23:59:59-05:00" } : {}),
     note:"—",
     live:true
   });
