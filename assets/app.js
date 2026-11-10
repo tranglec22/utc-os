@@ -1,4 +1,4 @@
-/* UTC.OS Reconstruction Shell — Phase 7
+/* UTC.OS Reconstruction Shell — Phase 9
    Evidence-first SPA. Public-safe memory + verified radar feeds. No fake Connected OAuth.
    Phase 3: localStorage persistence (utcos-shell:*), specialist pages,
    Brain map, Setup checks, lesson views, PWA install wiring.
@@ -851,6 +851,7 @@
         }
         renderDockAgents();
         updateDockLabel();
+        setDockPicking(false);
         $("#dockInput").focus();
       });
       wrap.appendChild(b);
@@ -858,18 +859,30 @@
   }
 
   function updateDockLabel(lastTarget) {
-    const title = $("#dockTitle");
+    const picker = $("#dockPicker");
     const label = $("#dockRouteLabel");
-    if (!title || !label) return;
-    if (state.dockAgent === "auto") {
-      title.textContent = "Auto-route to the right agent";
-      label.textContent = lastTarget && AGENTS[lastTarget]
-        ? "AUTO → " + AGENTS[lastTarget].name + " · routed from what you typed"
-        : "AUTO · Kara catches anything that does not clearly belong elsewhere";
-    } else {
-      title.textContent = "Talk directly to " + AGENTS[state.dockAgent].name;
-      label.textContent = AGENTS[state.dockAgent].role;
+    const auto = state.dockAgent === "auto";
+    if (picker) {
+      picker.textContent = auto ? "Auto" : AGENTS[state.dockAgent].name;
+      picker.classList.toggle("auto", auto);
+      picker.setAttribute(
+        "aria-label",
+        auto ? "Auto: the Mothership picks who answers. Change" : "Talking to " + AGENTS[state.dockAgent].name + ". Change"
+      );
     }
+    if (label) {
+      label.textContent = auto && lastTarget && AGENTS[lastTarget]
+        ? "Auto picked " + AGENTS[lastTarget].name
+        : "";
+    }
+  }
+
+  function setDockPicking(open) {
+    const wrap = $("#dockAgents");
+    const picker = $("#dockPicker");
+    if (!wrap || !picker) return;
+    wrap.hidden = !open;
+    picker.setAttribute("aria-expanded", String(open));
   }
 
   function sendDock() {
@@ -896,19 +909,36 @@
     const replyEl = $("#dockReply");
     if (replyEl) {
       replyEl.style.display = "block";
+      const actions = $("#dockReplyActions");
+      if (actions) actions.hidden = false;
       if (reply) {
+        dockPending = null;
+        replyEl.classList.remove("pending");
         replyEl.textContent = AGENTS[target].name + ": " + reply;
       } else {
+        // Agent Core / AI answers arrive later. syncDockReply() runs on every
+        // chat re-render, so the dock shows the answer whenever it lands.
+        dockPending = { target: target, before: before };
+        replyEl.classList.add("pending");
         replyEl.textContent = AGENTS[target].name + " is handling that…";
-        setTimeout(() => {
-          const list = state.chats[target] || [];
-          if (list.length > before) {
-            const last = list[list.length - 1];
-            if (last && last.role === "agent") replyEl.textContent = AGENTS[target].name + ": " + last.text;
-          }
-        }, 800);
       }
     }
+  }
+
+  let dockPending = null;
+
+  function syncDockReply() {
+    if (!dockPending) return;
+    const replyEl = $("#dockReply");
+    const target = dockPending.target;
+    const list = state.chats[target] || [];
+    if (!replyEl || !AGENTS[target]) { dockPending = null; return; }
+    if (list.length <= dockPending.before) return;
+    const last = list[list.length - 1];
+    if (!last || last.role !== "agent" || aiPending[target]) return;
+    replyEl.classList.remove("pending");
+    replyEl.textContent = AGENTS[target].name + ": " + last.text;
+    dockPending = null;
   }
 
   function wireDock() {
@@ -923,13 +953,23 @@
         sendDock();
       }
     });
-    const collapse = $("#btnDockCollapse");
-    if (collapse) collapse.addEventListener("click", () => {
-      const dock = $("#mothershipDock");
-      const now = !dock.classList.contains("collapsed");
-      dock.classList.toggle("collapsed", now);
-      collapse.textContent = now ? "+" : "−";
-      collapse.setAttribute("aria-expanded", String(!now));
+    const picker = $("#dockPicker");
+    if (picker) picker.addEventListener("click", () => setDockPicking($("#dockAgents").hidden));
+    const hide = $("#dockReplyClose");
+    if (hide) hide.addEventListener("click", () => {
+      dockPending = null;
+      $("#dockReply").style.display = "none";
+      $("#dockReplyActions").hidden = true;
+    });
+    // "/" or Ctrl/Cmd+K jumps to Mothership Command from anywhere.
+    document.addEventListener("keydown", (e) => {
+      const t = e.target;
+      const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+      const combo = (e.ctrlKey || e.metaKey) && !e.altKey && String(e.key).toLowerCase() === "k";
+      const slash = e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey && !typing;
+      if (!combo && !slash) return;
+      e.preventDefault();
+      if (input) input.focus();
     });
     const open = $("#dockOpenChat");
     if (open) open.addEventListener("click", () => {
@@ -1006,9 +1046,37 @@
     });
   }
 
+  const DEADLINE_MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+  /* Returns the lead's deadline as a Date (end of that day), or null.
+     Reads an explicit ISO `deadline` first; otherwise looks for a written date
+     ("Oct 1, 2026") in a timeline that is clearly a deadline. */
+  function leadDeadline(l) {
+    if (!l) return null;
+    if (l.deadline) {
+      const d = new Date(l.deadline);
+      if (!Number.isNaN(d.getTime())) return d;
+    }
+    const t = String(l.timeline || "");
+    if (!/deadline|due|closes|closing|bids? by/i.test(t)) return null;
+    const m = t.match(/([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})/);
+    if (!m) return null;
+    const month = DEADLINE_MONTHS.indexOf(m[1].slice(0, 3).toLowerCase());
+    if (month < 0) return null;
+    return new Date(Number(m[3]), month, Number(m[2]), 23, 59, 59);
+  }
+
+  function leadExpired(l) {
+    const d = leadDeadline(l);
+    return !!d && d.getTime() < Date.now();
+  }
+
   function allLeads() {
     const live = Array.isArray(state.radarLeads) ? state.radarLeads : [];
-    return live.concat(FIXTURE_LEADS);
+    // Opportunities whose deadline has passed drop below everything still open.
+    const open = live.filter((l) => !leadExpired(l));
+    const closed = live.filter((l) => leadExpired(l));
+    return open.concat(FIXTURE_LEADS, closed);
   }
 
   function renderLeads() {
@@ -1026,9 +1094,11 @@
     filtered.forEach((l) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "lead-card";
-      const scoreClass =
-        l.band === "HOT" ? "hot" : l.band === "WARM" ? "warm" : "";
+      const expired = leadExpired(l);
+      btn.className = "lead-card" + (expired ? " expired" : "");
+      const scoreClass = expired
+        ? ""
+        : l.band === "HOT" ? "hot" : l.band === "WARM" ? "warm" : "";
       const stClass =
         l.status === "LOST" ? "lost" : l.status === "NEW" ? "new" : "";
       btn.innerHTML =
@@ -1056,8 +1126,13 @@
         stClass +
         '">' +
         l.status +
-        (l.unread ? " · Unread" : "") +
-        "</span>";
+        (l.unread && !expired ? " · Unread" : "") +
+        "</span>" +
+        (expired
+          ? ' <span class="lead-status lost">Deadline passed ' +
+            escapeHtml(leadDeadline(l).toLocaleDateString(undefined, { month: "short", day: "numeric" })) +
+            "</span>"
+          : "");
       btn.addEventListener("click", () => openLead(l));
       list.appendChild(btn);
     });
@@ -1073,7 +1148,18 @@
 
   function openLead(l) {
     $("#leadDialogTitle").textContent = l.title;
+    const badge = $("#leadDialogBadge");
+    if (badge) {
+      // Radar leads come from real public sources; only built-in samples are demo data.
+      badge.className = l.live ? "badge connected" : "demo-badge";
+      badge.textContent = l.live ? "Verified public source" : "Demo data";
+    }
     $("#leadDialogBody").innerHTML =
+      (leadExpired(l)
+        ? '<div class="lead-expired-note" role="note"><strong>Deadline passed ' +
+          escapeHtml(leadDeadline(l).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })) +
+          ".</strong> This opportunity is probably closed. Check the source for an award notice or a re-bid before spending time on it.</div>"
+        : "") +
       '<div class="field-block"><div class="lbl">Score</div><div class="val">' +
       l.band +
       " · " +
@@ -1116,7 +1202,7 @@
       '<div class="field-block"><div class="lbl">Timeline</div><div class="val">' +
       escapeHtml(l.timeline) +
       "</div></div>" +
-      '<div class="form-group"><label>Pipeline stage <span class="demo-badge">Local stub</span></label><select id="leadStageSelect">' +
+      '<div class="form-group"><label for="leadStageSelect">Pipeline stage <span class="demo-badge">This device</span></label><select id="leadStageSelect">' +
       PIPELINE.filter((p) => p !== "All")
         .map(
           (p) =>
@@ -1129,10 +1215,9 @@
         .join("") +
       "</select></div>" +
       '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">' +
-      '<button type="button" class="btn btn-outline" disabled>Create estimate</button>' +
-      '<button type="button" class="btn btn-ghost" disabled>Mark contacted</button>' +
-      '<button type="button" class="btn btn-ghost" disabled>Mark won</button>' +
-      '<button type="button" class="btn btn-ghost" disabled>Mark lost</button>' +
+      '<button type="button" class="btn btn-outline" data-lead-stage="CONTACTED">Mark contacted</button>' +
+      '<button type="button" class="btn btn-ghost" data-lead-stage="WON">Mark won</button>' +
+      '<button type="button" class="btn btn-ghost" data-lead-stage="LOST">Mark lost</button>' +
       "</div>" +
       '<p class="small local-note" style="margin-top:10px" id="leadStageNote">' +
       localNoteText() +
@@ -1152,6 +1237,13 @@
           note.textContent = "Stage set to " + next + " · " + localNoteText();
         }
         renderLeads();
+      });
+      // Quick buttons set the same saved stage as the dropdown.
+      $$("#leadDialogBody [data-lead-stage]").forEach((b) => {
+        b.addEventListener("click", () => {
+          sel.value = b.dataset.leadStage;
+          sel.dispatchEvent(new Event("change"));
+        });
       });
     }
     const noteBtn = $("#leadNoteSave");
@@ -1485,7 +1577,7 @@
           ? '<button type="button" class="btn btn-ghost" style="margin-top:8px;padding:6px 12px;font-size:12px" data-mem-del="' +
             escapeHtml(m.id) +
             '">Delete local memory</button>'
-          : '<button type="button" class="btn btn-ghost" style="margin-top:8px;padding:6px 12px;font-size:12px" disabled>Archive</button>');
+          : "");
       wrap.appendChild(card);
     });
     wrap.querySelectorAll("[data-mem-del]").forEach((b) =>
@@ -1532,9 +1624,7 @@
           ? '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" data-k-del="' +
             escapeHtml(k.id) +
             '">Delete</button>'
-          : '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" disabled>Always remember</button>' +
-            '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" disabled>Make project-only</button>' +
-            '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" disabled>Delete</button>') +
+          : "") +
         "</div>";
       wrap.appendChild(el);
     });
@@ -1793,15 +1883,42 @@
       : "Feed generated " + d.toLocaleString();
   }
 
+  function radarFeedAgeDays() {
+    if (!state.radarGeneratedAt) return null;
+    const d = new Date(state.radarGeneratedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+
+  const RADAR_STALE_DAYS = 7;
+
   function updateRadarFreshness() {
     const el = $("#radarFreshness");
-    if (el) {
-      el.textContent =
-        radarFeedLabel() +
-        " · " +
-        state.radarLeads.length +
-        " verified public opportunit" +
-        (state.radarLeads.length === 1 ? "y" : "ies");
+    if (!el) return;
+    const total = state.radarLeads.length;
+    const closed = state.radarLeads.filter(leadExpired).length;
+    const age = radarFeedAgeDays();
+    const stale = age != null && age > RADAR_STALE_DAYS;
+    el.textContent =
+      radarFeedLabel() +
+      " · " +
+      total +
+      " verified public opportunit" +
+      (total === 1 ? "y" : "ies") +
+      (closed ? " · " + closed + " past deadline" : "");
+    let warn = $("#radarStale");
+    if (!warn) {
+      warn = document.createElement("p");
+      warn.id = "radarStale";
+      warn.className = "radar-stale";
+      warn.setAttribute("role", "status");
+      el.insertAdjacentElement("afterend", warn);
+    }
+    warn.hidden = !stale;
+    if (stale) {
+      warn.textContent =
+        "This feed is " + age + " days old, so listings may have closed or changed. " +
+        "The scheduled refresh has not published a newer feed. Open each source link to confirm before acting.";
     }
   }
 
@@ -1859,6 +1976,7 @@
           state.radarLeads.length +
           " verified public opportunities loaded. " +
           radarFeedLabel() +
+          (radarFeedAgeDays() > RADAR_STALE_DAYS ? " (no newer feed has been published yet)" : "") +
           ". Source links stay attached; no outreach was sent.";
       } catch (e) {
         el.textContent =
@@ -4063,6 +4181,7 @@
       }
       renderChatLog(c.el, c.key());
     }
+    syncDockReply();
   }
 
   function mountChat(el, keyFn) {

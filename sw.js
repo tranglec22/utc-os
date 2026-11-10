@@ -1,9 +1,9 @@
-/* UTC.OS Reconstruction Shell — Phase 7 service worker.
+/* UTC.OS Reconstruction Shell — Phase 9 service worker.
    Cache-first for same-origin shell files only. No background sync,
    no push, no API calls of its own. Cross-origin requests (Google Fonts,
    the optional bring-your-own-key calls to api.openai.com, and Agent Core API traffic) are passed
    straight to the network and NEVER cached here. */
-const CACHE = "utcos-shell-v8";
+const CACHE = "utcos-shell-v10";
 const SHELL = [
   "./",
   "./index.html",
@@ -11,6 +11,8 @@ const SHELL = [
   "./manifest.json",
   "./assets/app.js",
   "./assets/styles.css",
+  "./assets/player.js",
+  "./assets/player.css",
   "./data/second-brain-public.json",
   "./icons/icon.svg",
   "./icons/icon-192.png",

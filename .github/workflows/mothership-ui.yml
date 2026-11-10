@@ -5,6 +5,8 @@ on:
     paths:
       - "index.html"
       - "assets/**"
+      - "sw.js"
+      - "data/job-radar.json"
       - ".github/workflows/mothership-ui.yml"
   workflow_dispatch:
 
@@ -17,7 +19,13 @@ jobs:
         with:
           node-version: "20"
       - name: Check JavaScript syntax
-        run: node --check assets/app.js
+        run: |
+          node --check assets/app.js
+          node --check sw.js
+          node --check assets/player.js
+      - name: Check data feeds are valid JSON
+        run: |
+          node -e 'for (const f of ["data/job-radar.json","data/second-brain-public.json","manifest.json"]) JSON.parse(require("fs").readFileSync(f,"utf8"))'
       - name: Verify command dock IDs
         shell: bash
         run: |
@@ -26,3 +34,5 @@ jobs:
           grep -q 'id="dockAgents"' index.html
           grep -q 'function autoRouteAgent' assets/app.js
           grep -q 'name: "Bastion"' assets/app.js
+          grep -q 'function syncDockReply' assets/app.js
+          grep -q 'function leadExpired' assets/app.js

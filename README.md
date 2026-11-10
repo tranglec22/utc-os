@@ -1,4 +1,31 @@
-# UTC.OS Reconstruction Shell — Phase 7
+# UTC.OS Reconstruction Shell — Phase 9
+
+## Phase 9: simpler interface + working music player
+
+**Music player** (`assets/player.js`, `assets/player.css`) — the note icon in the header, or the Music card on Home.
+
+- **Add from this device** opens the phone's file chooser. On Android that chooser also lists the Google Drive app, so Drive songs can be picked directly with no sign-in or setup.
+- **Add a Google Drive link** accepts a share link for a single file shared as "Anyone with the link". The player tries Google's direct-download addresses; if Google refuses to stream the file, it falls back to Google's own embedded player and explains the sharing setting to check. Folder links are rejected with an explanation, because listing a folder needs a Google sign-in this static site does not have.
+- The library is stored in the browser (IndexedDB database `utcos-player`), so it survives reloads. Nothing is uploaded. Music keeps playing while moving between screens, and lock-screen controls work where the browser supports Media Session.
+- This replaces the never-merged `feature/living-mothership-ui` player, whose Drive button was a placeholder.
+
+**Simpler interface**
+
+- Header is one row: workspace, search, music, active agent. The duplicate Lead Center shortcut and the two-line "reconstruction shell" banner are gone (the honesty note is now the footer line). Secret Vault moved to System.
+- Mothership Command is one row: who answers (Auto by default), the message box, Send. The agent choices open only when asked for. Header + command bar went from about 350px to about 120px tall on a phone.
+- Buttons that could never work were removed or made to work: lead **Mark contacted / won / lost** now set the saved stage; the permanently disabled Attach, Speak, Preview voice, Create estimate, Restore snapshot, Archive, and Knowledge fixture buttons are gone; the three "stub" buttons (lead import, add skill, copy history) are hidden.
+- The dock minimize button from Phase 8 was removed because the bar is now a single row.
+- Service worker cache bumped to `utcos-shell-v10`.
+
+## Phase 8: Mothership Command dock + Job Radar freshness
+
+- **Dock fits phones.** The Mothership Command dock was wider than a phone screen, which pushed **Send**, the minimize button and **Open full chat** off the right edge. It now stays inside the screen and the agent chips scroll sideways.
+- **Minimize is remembered.** The dock keeps its open/minimized state between visits (`utcos-shell:dockCollapsed`). Press `/` or `Ctrl/Cmd+K` anywhere to open it and start typing.
+- **Dock replies wait for the real answer.** Agent Core / AI replies used to be read after a fixed 0.8 seconds, so slower answers left the dock stuck on "is handling that…". The dock now updates whenever the reply lands.
+- **Job Radar knows about deadlines.** A lead with a passed deadline (explicit ISO `deadline`, or a written date in a deadline-style `timeline`) is dimmed, labelled "Deadline passed" and sorted below open work. `scripts/job-radar.mjs` now asks for a `deadlineDate` and writes it as `deadline`.
+- **Stale-feed warning.** If `data/job-radar.json` is more than 7 days old, Lead Center says so instead of presenting old listings as current. The six-hourly refresh still needs the `XAI_API_KEY` repository secret.
+- Lead detail no longer labels verified radar leads as "Demo data".
+- Service worker cache bumped to `utcos-shell-v9` so installed copies pick up the update.
 
 ## Phase 7: Second Brain + Job Radar bridge
 

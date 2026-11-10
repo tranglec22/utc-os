@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#050508" />
-  <meta name="description" content="UTC.OS reconstruction shell — Phase 6 shell. Not the live utc-os-app." />
+  <meta name="description" content="UTC.OS reconstruction shell — Phase 9. Not the live utc-os-app." />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -14,67 +14,55 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="assets/player.css" />
 </head>
 <body>
   <div class="app" id="app">
-    <div class="recon-banner" role="status">
-      Reconstruction shell — not live utc-os-app · Demo / fixture data only
-    </div>
-
-    <header class="header" id="header">
+        <header class="header" id="header">
       <div class="header-top">
         <div class="brand">
           <div class="brand-name">UTC.OS</div>
           <div class="world-chip" id="worldChip">UP2CODE</div>
         </div>
         <div class="header-actions">
+          <select class="workspace-select" id="workspaceSelect" aria-label="Workspace">
+            <option>All work</option>
+            <option>Business</option>
+            <option>Music</option>
+            <option>Creative</option>
+            <option>Personal</option>
+          </select>
           <button type="button" class="icon-btn" id="btnSearch" title="Search" aria-label="Search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
           </button>
-          <button type="button" class="icon-btn vault" id="btnVault" title="Secret Vault" aria-label="Secret Vault">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10 6-10 6z" fill="currentColor" stroke="none"/></svg>
-          </button>
-          <button type="button" class="icon-btn" id="btnLeadsShortcut" title="Lead Center" aria-label="Lead Center">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19l4-8 4 4 4-8 4 12"/><path d="M4 19h16"/></svg>
+          <button type="button" class="icon-btn" id="btnMusic" title="Music player" aria-label="Music player" aria-expanded="false" aria-controls="playerPanel">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
           </button>
           <button type="button" class="avatar-btn" id="btnActiveAgent" title="Active agent" aria-label="Active agent">K</button>
         </div>
       </div>
-      <div class="header-sub">
-        <div class="status-pill local" id="syncPill" title="Honest local shell — no cloud sync">
-          <span class="dot"></span>
-          <span>Local · shell</span>
-        </div>
-        <select class="workspace-select" id="workspaceSelect" aria-label="Workspace">
-          <option>All work</option>
-          <option>Business</option>
-          <option>Music</option>
-          <option>Creative</option>
-          <option>Personal</option>
-        </select>
-      </div>
+      <!-- Kept for existing scripts; these shortcuts now live in the bottom bar and System. -->
+      <button type="button" id="btnVault" hidden></button>
+      <button type="button" id="btnLeadsShortcut" hidden></button>
+      <span id="syncPill" hidden></span>
     </header>
 
-    <section class="mothership-dock" id="mothershipDock" aria-label="Mothership command dock">
-      <div class="dock-top">
-        <div>
-          <div class="section-label">Mothership Command</div>
-          <div class="dock-title" id="dockTitle">Auto-route to the right agent</div>
-        </div>
-        <button type="button" class="dock-collapse" id="btnDockCollapse" aria-expanded="true" aria-controls="dockBody">−</button>
-      </div>
+    <section class="mothership-dock" id="mothershipDock" aria-label="Mothership command">
       <div id="dockBody">
-        <div class="dock-agents" id="dockAgents" role="list" aria-label="Choose an agent"></div>
         <div class="dock-row">
-          <input type="text" id="dockInput" placeholder="Talk, dump an idea, ask a question, or give me a task…" autocomplete="off" />
+          <button type="button" class="dock-picker" id="dockPicker" aria-expanded="false" aria-controls="dockAgents" title="Choose who answers">Auto</button>
+          <input type="text" id="dockInput" placeholder="Ask or tell the Mothership…" aria-label="Message the Mothership" autocomplete="off" />
           <button type="button" class="btn btn-gold" id="dockSend">Send</button>
         </div>
-        <div class="dock-meta">
-          <span id="dockRouteLabel">AUTO · Kara catches anything that does not clearly belong elsewhere</span>
-          <button type="button" class="small gold" id="dockOpenChat">Open full chat</button>
-        </div>
+        <div class="dock-agents" id="dockAgents" role="list" aria-label="Choose who answers" hidden></div>
         <div class="dock-reply" id="dockReply" aria-live="polite"></div>
+        <div class="dock-reply-actions" id="dockReplyActions" hidden>
+          <span id="dockRouteLabel"></span>
+          <button type="button" class="small gold" id="dockOpenChat">Open full chat</button>
+          <button type="button" class="small" id="dockReplyClose">Hide</button>
+        </div>
       </div>
+      <span id="dockTitle" hidden></span>
     </section>
 
     <main class="main" id="main">
@@ -155,8 +143,6 @@
             <div class="answer-panel chat-log" id="answerPanel" aria-live="polite">Kara online.</div>
             <div class="cockpit-row">
               <input type="text" id="cockpitInput" placeholder="Type a prompt…" autocomplete="off" />
-              <button type="button" class="icon-btn" title="Attach (stub)" aria-label="Attach" disabled>📎</button>
-              <button type="button" class="icon-btn" title="Speak (stub)" aria-label="Speak" disabled>🎤</button>
               <button type="button" class="btn btn-gold" id="btnSend" style="border-radius:8px;padding:8px 14px">Send</button>
             </div>
             <p class="small dim" style="margin-top:8px" id="cockpitFootnote">Local command engine acting on data saved on this device. No AI model is connected — add your own OpenAI key in System → Settings to enable AI replies. Type <strong>help</strong> for commands.</p>
@@ -169,14 +155,10 @@
             <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" data-nav="today">Open Today</button>
           </div>
 
-          <div class="card coming-soon">
-            <div class="section-label">Media player</div>
-            <p class="small muted">Transport controls disabled in live app.</p>
-          </div>
-
-          <div class="card coming-soon">
-            <div class="section-label">Crew · Materials · Profit</div>
-            <p class="small muted">Modules marked Coming soon on the live Home.</p>
+          <div class="card">
+            <div class="section-label">Music</div>
+            <p class="small muted">Play your songs from this device or from Google Drive. Music keeps playing while you move between screens.</p>
+            <button type="button" class="btn btn-outline btn-block" style="margin-top:8px" data-open-player>Open music player</button>
           </div>
 
           <div class="card">
@@ -234,7 +216,6 @@
               <input type="checkbox" id="openaiVoice" disabled /> Use OpenAI voice
             </label>
             <p class="safety-note">OpenAI voice may incur API charges. Unchecked and disabled in this reconstruction shell (live walk left it unchecked).</p>
-            <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" disabled>Preview voice (not available)</button>
             <p class="small dim local-note" style="margin-top:8px">Saved on this device only</p>
           </div>
 
@@ -491,7 +472,7 @@
           <p class="small muted" style="margin:6px 0 6px">Loads a source-linked Pittsburgh opportunity feed built from public bids, subcontractor networks, job boards and other verified public posts.</p>
           <p class="small dim" id="radarFreshness" style="margin:0 0 12px">Verified feed not loaded yet</p>
           <button type="button" class="btn btn-gold btn-block" id="btnRadar">Refresh Pittsburgh radar</button>
-          <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" id="btnImport">Import JSON or CSV</button>
+          <button type="button" class="btn btn-ghost btn-block" style="margin-top:8px" id="btnImport" hidden>Import JSON or CSV</button>
           <p class="small dim" style="margin-top:10px">Every live-search result must match a source returned by the search engine. Duplicate URLs and source IDs refresh the existing record.</p>
           <p class="safety-note">Radar discovery is separated from outreach. A source URL is required for every live record; status/notes stay local here and nothing is contacted automatically.</p>
           <div class="answer-panel" id="radarAnswer" style="display:none;margin-top:8px"></div>
@@ -550,7 +531,7 @@
               <option>Personal</option>
             </select>
           </div>
-          <button type="button" class="btn btn-outline btn-block" id="btnAddSkill">Add skill (local stub)</button>
+          <button type="button" class="btn btn-outline btn-block" id="btnAddSkill" hidden>Add skill (local stub)</button>
           <div class="answer-panel" id="skillAnswer" style="display:none;margin-top:8px"></div>
         </div>
       </section>
@@ -560,6 +541,7 @@
         <div class="section-label">Your system</div>
         <h1 style="font-size:24px">One place for the work behind the work.</h1>
         <p class="muted small" style="margin-bottom:14px">Projects, tasks, and system settings. This shell is local-only — no cloud backup claimed.</p>
+        <button type="button" class="btn btn-ghost btn-block" style="margin-bottom:12px" data-nav="vault">Open Secret Vault</button>
 
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:baseline">
@@ -805,7 +787,6 @@
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">
             <button type="button" class="btn btn-outline" id="btnRunChecks">Run local checks</button>
             <button type="button" class="btn btn-ghost" id="btnCreateSnap">Create snapshot</button>
-            <button type="button" class="btn btn-ghost" disabled>Restore snapshot</button>
             <button type="button" class="btn btn-ghost" id="btnClearArt">Clear artwork cache</button>
           </div>
           <div class="answer-panel" id="securityAnswer" style="display:none;margin-top:8px"></div>
@@ -916,7 +897,7 @@
         <div class="card">
           <h2>History <span class="demo-badge">Fixture</span></h2>
           <p class="small">1 saved prompt · Album cover 1:1 Music · Lil Wiz-Nap identity</p>
-          <button type="button" class="btn btn-ghost btn-block" id="btnCopyHistory">Copy history (stub)</button>
+          <button type="button" class="btn btn-ghost btn-block" id="btnCopyHistory" hidden>Copy history (stub)</button>
         </div>
       </section>
 
@@ -973,7 +954,7 @@
         <div id="lessonBody"></div>
       </section>
 
-      <p class="recon-footer">Reconstruction shell — not live utc-os-app · Phase 6 shell</p>
+      <p class="recon-footer">Sample data is labelled “Demo” · everything you enter is saved on this device only</p>
     </main>
 
     <nav class="bottom-nav" id="bottomNav" aria-label="Primary">
@@ -1012,7 +993,7 @@
       <div class="dialog">
         <div class="dialog-header">
           <div>
-            <div class="section-label">Lead detail <span class="demo-badge">Demo data</span></div>
+            <div class="section-label">Lead detail <span class="demo-badge" id="leadDialogBadge">Demo data</span></div>
             <h2 id="leadDialogTitle">Lead</h2>
           </div>
           <button type="button" class="dialog-close" id="leadDialogClose" aria-label="Close">×</button>
@@ -1023,5 +1004,6 @@
   </div>
 
   <script src="assets/app.js"></script>
+  <script src="assets/player.js"></script>
 </body>
 </html>
