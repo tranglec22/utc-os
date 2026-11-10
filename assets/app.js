@@ -1,4 +1,4 @@
-/* UTC.OS Reconstruction Shell — Phase 8
+/* UTC.OS Reconstruction Shell — Phase 9
    Evidence-first SPA. Public-safe memory + verified radar feeds. No fake Connected OAuth.
    Phase 3: localStorage persistence (utcos-shell:*), specialist pages,
    Brain map, Setup checks, lesson views, PWA install wiring.
@@ -851,6 +851,7 @@
         }
         renderDockAgents();
         updateDockLabel();
+        setDockPicking(false);
         $("#dockInput").focus();
       });
       wrap.appendChild(b);
@@ -858,18 +859,30 @@
   }
 
   function updateDockLabel(lastTarget) {
-    const title = $("#dockTitle");
+    const picker = $("#dockPicker");
     const label = $("#dockRouteLabel");
-    if (!title || !label) return;
-    if (state.dockAgent === "auto") {
-      title.textContent = "Auto-route to the right agent";
-      label.textContent = lastTarget && AGENTS[lastTarget]
-        ? "AUTO → " + AGENTS[lastTarget].name + " · routed from what you typed"
-        : "AUTO · Kara catches anything that does not clearly belong elsewhere";
-    } else {
-      title.textContent = "Talk directly to " + AGENTS[state.dockAgent].name;
-      label.textContent = AGENTS[state.dockAgent].role;
+    const auto = state.dockAgent === "auto";
+    if (picker) {
+      picker.textContent = auto ? "Auto" : AGENTS[state.dockAgent].name;
+      picker.classList.toggle("auto", auto);
+      picker.setAttribute(
+        "aria-label",
+        auto ? "Auto: the Mothership picks who answers. Change" : "Talking to " + AGENTS[state.dockAgent].name + ". Change"
+      );
     }
+    if (label) {
+      label.textContent = auto && lastTarget && AGENTS[lastTarget]
+        ? "Auto picked " + AGENTS[lastTarget].name
+        : "";
+    }
+  }
+
+  function setDockPicking(open) {
+    const wrap = $("#dockAgents");
+    const picker = $("#dockPicker");
+    if (!wrap || !picker) return;
+    wrap.hidden = !open;
+    picker.setAttribute("aria-expanded", String(open));
   }
 
   function sendDock() {
@@ -896,6 +909,8 @@
     const replyEl = $("#dockReply");
     if (replyEl) {
       replyEl.style.display = "block";
+      const actions = $("#dockReplyActions");
+      if (actions) actions.hidden = false;
       if (reply) {
         dockPending = null;
         replyEl.classList.remove("pending");
@@ -926,16 +941,6 @@
     dockPending = null;
   }
 
-  function setDockCollapsed(collapsed) {
-    const dock = $("#mothershipDock");
-    const btn = $("#btnDockCollapse");
-    if (!dock || !btn) return;
-    dock.classList.toggle("collapsed", collapsed);
-    btn.textContent = collapsed ? "+" : "−";
-    btn.setAttribute("aria-expanded", String(!collapsed));
-    btn.setAttribute("aria-label", collapsed ? "Open Mothership Command" : "Minimize Mothership Command");
-  }
-
   function wireDock() {
     renderDockAgents();
     updateDockLabel();
@@ -948,13 +953,13 @@
         sendDock();
       }
     });
-    const collapse = $("#btnDockCollapse");
-    // Remember minimize/open between visits so the dock stays how you left it.
-    setDockCollapsed(store.get("dockCollapsed", false) === true);
-    if (collapse) collapse.addEventListener("click", () => {
-      const now = !$("#mothershipDock").classList.contains("collapsed");
-      setDockCollapsed(now);
-      store.set("dockCollapsed", now);
+    const picker = $("#dockPicker");
+    if (picker) picker.addEventListener("click", () => setDockPicking($("#dockAgents").hidden));
+    const hide = $("#dockReplyClose");
+    if (hide) hide.addEventListener("click", () => {
+      dockPending = null;
+      $("#dockReply").style.display = "none";
+      $("#dockReplyActions").hidden = true;
     });
     // "/" or Ctrl/Cmd+K jumps to Mothership Command from anywhere.
     document.addEventListener("keydown", (e) => {
@@ -964,8 +969,6 @@
       const slash = e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey && !typing;
       if (!combo && !slash) return;
       e.preventDefault();
-      setDockCollapsed(false);
-      store.set("dockCollapsed", false);
       if (input) input.focus();
     });
     const open = $("#dockOpenChat");
@@ -1199,7 +1202,7 @@
       '<div class="field-block"><div class="lbl">Timeline</div><div class="val">' +
       escapeHtml(l.timeline) +
       "</div></div>" +
-      '<div class="form-group"><label>Pipeline stage <span class="demo-badge">Local stub</span></label><select id="leadStageSelect">' +
+      '<div class="form-group"><label for="leadStageSelect">Pipeline stage <span class="demo-badge">This device</span></label><select id="leadStageSelect">' +
       PIPELINE.filter((p) => p !== "All")
         .map(
           (p) =>
@@ -1212,10 +1215,9 @@
         .join("") +
       "</select></div>" +
       '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">' +
-      '<button type="button" class="btn btn-outline" disabled>Create estimate</button>' +
-      '<button type="button" class="btn btn-ghost" disabled>Mark contacted</button>' +
-      '<button type="button" class="btn btn-ghost" disabled>Mark won</button>' +
-      '<button type="button" class="btn btn-ghost" disabled>Mark lost</button>' +
+      '<button type="button" class="btn btn-outline" data-lead-stage="CONTACTED">Mark contacted</button>' +
+      '<button type="button" class="btn btn-ghost" data-lead-stage="WON">Mark won</button>' +
+      '<button type="button" class="btn btn-ghost" data-lead-stage="LOST">Mark lost</button>' +
       "</div>" +
       '<p class="small local-note" style="margin-top:10px" id="leadStageNote">' +
       localNoteText() +
@@ -1235,6 +1237,13 @@
           note.textContent = "Stage set to " + next + " · " + localNoteText();
         }
         renderLeads();
+      });
+      // Quick buttons set the same saved stage as the dropdown.
+      $$("#leadDialogBody [data-lead-stage]").forEach((b) => {
+        b.addEventListener("click", () => {
+          sel.value = b.dataset.leadStage;
+          sel.dispatchEvent(new Event("change"));
+        });
       });
     }
     const noteBtn = $("#leadNoteSave");
@@ -1568,7 +1577,7 @@
           ? '<button type="button" class="btn btn-ghost" style="margin-top:8px;padding:6px 12px;font-size:12px" data-mem-del="' +
             escapeHtml(m.id) +
             '">Delete local memory</button>'
-          : '<button type="button" class="btn btn-ghost" style="margin-top:8px;padding:6px 12px;font-size:12px" disabled>Archive</button>');
+          : "");
       wrap.appendChild(card);
     });
     wrap.querySelectorAll("[data-mem-del]").forEach((b) =>
@@ -1615,9 +1624,7 @@
           ? '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" data-k-del="' +
             escapeHtml(k.id) +
             '">Delete</button>'
-          : '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" disabled>Always remember</button>' +
-            '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" disabled>Make project-only</button>' +
-            '<button type="button" class="btn btn-ghost" style="padding:4px 10px;font-size:11px" disabled>Delete</button>') +
+          : "") +
         "</div>";
       wrap.appendChild(el);
     });

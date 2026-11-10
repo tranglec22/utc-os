@@ -22,6 +22,7 @@ jobs:
         run: |
           node --check assets/app.js
           node --check sw.js
+          node --check assets/player.js
       - name: Check data feeds are valid JSON
         run: |
           node -e 'for (const f of ["data/job-radar.json","data/second-brain-public.json","manifest.json"]) JSON.parse(require("fs").readFileSync(f,"utf8"))'
